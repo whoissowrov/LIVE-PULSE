@@ -33,14 +33,8 @@ export default function App() {
     }
   });
 
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('lifepulse_react_current_user');
-      return saved ? JSON.parse(saved) : DEFAULT_USERS[0];
-    } catch (e) {
-      return DEFAULT_USERS[0];
-    }
-  });
+  // Start as guest (logged out) so visitor sees Login / Register on refresh
+  const [currentUser, setCurrentUser] = useState(null);
 
   const [donors, setDonors] = useState(() => {
     try {
@@ -85,14 +79,10 @@ export default function App() {
     localStorage.setItem('lifepulse_react_users', JSON.stringify(users));
   }, [users]);
 
+  // On page mount / refresh, ensure guest visitor state so "Login / Register" is always shown
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem('lifepulse_react_current_user', JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem('lifepulse_react_current_user');
-      localStorage.removeItem('lifepulse_token');
-    }
-  }, [currentUser]);
+    localStorage.removeItem('lifepulse_react_current_user');
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('lifepulse_react_donors', JSON.stringify(donors));
