@@ -56,10 +56,16 @@ export default function App() {
 
   // Modal visibility states
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState('login');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isSosModalOpen, setIsSosModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [platformAlert, setPlatformAlert] = useState('Urgent demand for O-Negative and B-Positive at Mount Sinai & NYU Langone ER wards.');
+
+  const handleOpenAuth = (tab = 'login') => {
+    setAuthModalTab(tab);
+    setIsAuthModalOpen(true);
+  };
 
   // Search filter passed from hero
   const [searchFilters, setSearchFilters] = useState(null);
@@ -111,7 +117,12 @@ export default function App() {
         };
         setCurrentUser(mappedUser);
         setIsAuthModalOpen(false);
-        showToast(res.message || `Welcome back, ${res.user.name}!`, 'success');
+        if (mappedUser.role === 'admin') {
+          setIsAdminModalOpen(true);
+          showToast('👑 Welcome back, Root Administrator! Admin Console unlocked.', 'success');
+        } else {
+          showToast(res.message || `Welcome back, ${res.user.name}!`, 'success');
+        }
         return;
       } else if (res?.message) {
         showToast(res.message, 'danger');
@@ -133,7 +144,12 @@ export default function App() {
     }
     setCurrentUser(user);
     setIsAuthModalOpen(false);
-    showToast(`Welcome back, ${user.name}!`, 'success');
+    if (user.role === 'admin') {
+      setIsAdminModalOpen(true);
+      showToast('👑 Welcome back, Root Administrator! Admin Console unlocked.', 'success');
+    } else {
+      showToast(`Welcome back, ${user.name}!`, 'success');
+    }
   };
 
   const handleDemoLogin = async (email) => {
@@ -151,6 +167,7 @@ export default function App() {
           };
           setCurrentUser(adminProfile);
           setIsAuthModalOpen(false);
+          setIsAdminModalOpen(true);
           showToast('👑 Welcome back, Root Administrator! Admin Console unlocked.', 'success');
           return;
         }
@@ -173,7 +190,8 @@ export default function App() {
       };
       setCurrentUser(adminLocal);
       setIsAuthModalOpen(false);
-      showToast('👑 Logged in as Administrator! Admin Console unlocked in Navbar.', 'success');
+      setIsAdminModalOpen(true);
+      showToast('👑 Logged in as Administrator! Admin Console unlocked.', 'success');
       return;
     }
 
@@ -318,11 +336,11 @@ export default function App() {
       {/* 3. Navigation Header */}
       <Navbar
         currentUser={currentUser}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onOpenAuth={handleOpenAuth}
         onOpenSos={() => setIsSosModalOpen(true)}
         onOpenAdmin={() => setIsAdminModalOpen(true)}
         onOpenUpload={() => {
-          if (!currentUser) setIsAuthModalOpen(true);
+          if (!currentUser) handleOpenAuth('login');
           else setIsUploadModalOpen(true);
         }}
       />
@@ -332,7 +350,7 @@ export default function App() {
         platformAlert={platformAlert}
         onOpenUpload={() => {
           if (!currentUser) {
-            setIsAuthModalOpen(true);
+            handleOpenAuth('register');
             showToast('Please login or create an account to upload your data and location.', 'info');
           } else {
             setIsUploadModalOpen(true);
@@ -367,17 +385,19 @@ export default function App() {
       {/* 10. Eligibility Quiz */}
       <EligibilityQuiz
         onOpenUpload={() => {
-          if (!currentUser) setIsAuthModalOpen(true);
+          if (!currentUser) handleOpenAuth('register');
           else setIsUploadModalOpen(true);
         }}
       />
 
       {/* 11. Footer */}
       <Footer
+        currentUser={currentUser}
         onOpenUpload={() => {
-          if (!currentUser) setIsAuthModalOpen(true);
+          if (!currentUser) handleOpenAuth('register');
           else setIsUploadModalOpen(true);
         }}
+        onOpenAuth={handleOpenAuth}
         onOpenAdmin={() => setIsAdminModalOpen(true)}
       />
 
@@ -398,6 +418,7 @@ export default function App() {
 
       <AuthModal
         isOpen={isAuthModalOpen}
+        initialTab={authModalTab}
         onClose={() => setIsAuthModalOpen(false)}
         onLogin={handleLogin}
         onRegister={handleRegister}

@@ -1,7 +1,9 @@
 import React from 'react';
 import { Droplet, Headset } from 'lucide-react';
 
-export default function Footer({ onOpenUpload, onOpenAdmin }) {
+export default function Footer({ onOpenUpload, onOpenAuth, currentUser, onOpenAdmin }) {
+  const isAdmin = currentUser?.role === 'admin';
+
   return (
     <footer className="site-footer">
       <div className="container">
@@ -32,15 +34,30 @@ export default function Footer({ onOpenUpload, onOpenAdmin }) {
               <li><a href="#requestsSection">Emergency SOS List</a></li>
               <li><a href="#donorsSection">Find Donors Directory</a></li>
               <li><a href="#mapSection">Live Radar Map</a></li>
-              <li>
-                <a
-                  href="#admin"
-                  onClick={(e) => { e.preventDefault(); onOpenAdmin && onOpenAdmin(); }}
-                  style={{ color: '#f87171', fontWeight: 600 }}
-                >
-                  🛡️ Admin & Staff Portal
-                </a>
-              </li>
+              {!currentUser ? (
+                <>
+                  <li>
+                    <a href="#login" onClick={(e) => { e.preventDefault(); onOpenAuth && onOpenAuth('login'); }}>
+                      🔑 Account Sign In
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#register" onClick={(e) => { e.preventDefault(); onOpenAuth && onOpenAuth('register'); }}>
+                      ✨ Register New Donor
+                    </a>
+                  </li>
+                </>
+              ) : isAdmin ? (
+                <li>
+                  <a
+                    href="#admin"
+                    onClick={(e) => { e.preventDefault(); onOpenAdmin && onOpenAdmin(); }}
+                    style={{ color: '#fbbf24', fontWeight: 600 }}
+                  >
+                    🛡️ Admin Console
+                  </a>
+                </li>
+              ) : null}
             </ul>
           </div>
 

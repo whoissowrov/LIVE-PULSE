@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Droplet, PlusCircle, UserCircle, Menu, X } from 'lucide-react';
+import { Droplet, PlusCircle, UserCircle, UserPlus, LogIn, Menu, X } from 'lucide-react';
 
 export default function Navbar({ currentUser, onOpenAuth, onOpenSos, onOpenUpload, onOpenAdmin }) {
   const [scrolled, setScrolled] = useState(false);
@@ -35,38 +35,74 @@ export default function Navbar({ currentUser, onOpenAuth, onOpenSos, onOpenUploa
             <li><a href="#donorsSection" onClick={() => setMenuOpen(false)}>Find Donors</a></li>
             <li><a href="#mapSection" onClick={() => setMenuOpen(false)}>Live Map</a></li>
             <li><a href="#compatibilitySection" onClick={() => setMenuOpen(false)}>Compatibility</a></li>
-            <li>
-              <a
-                href="#admin"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setMenuOpen(false);
-                  onOpenAdmin();
-                }}
-                style={{ color: isAdmin ? '#fbbf24' : '#f87171', fontWeight: 700 }}
-              >
-                🛡️ {isAdmin ? 'Admin Console' : 'Admin Portal'}
-              </a>
-            </li>
+
+            {/* Admin Console option: ONLY shown when logged in as Admin */}
+            {isAdmin && (
+              <li>
+                <a
+                  href="#admin"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMenuOpen(false);
+                    onOpenAdmin();
+                  }}
+                  style={{ color: '#fbbf24', fontWeight: 700 }}
+                >
+                  🛡️ Admin Console
+                </a>
+              </li>
+            )}
+
+            {/* Mobile login & register links */}
+            {!currentUser && (
+              <>
+                <li className="mobile-only-item">
+                  <a
+                    href="#login"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setMenuOpen(false);
+                      onOpenAuth('login');
+                    }}
+                  >
+                    🔑 Sign In
+                  </a>
+                </li>
+                <li className="mobile-only-item">
+                  <a
+                    href="#register"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setMenuOpen(false);
+                      onOpenAuth('register');
+                    }}
+                    style={{ color: 'var(--primary)', fontWeight: 600 }}
+                  >
+                    ✨ Register
+                  </a>
+                </li>
+              </>
+            )}
           </ul>
         </nav>
 
         <div className="nav-actions">
-          <button
-            className="btn btn-sm"
-            onClick={onOpenAdmin}
-            style={{
-              background: isAdmin
-                ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(239, 68, 68, 0.25))'
-                : 'rgba(239, 68, 68, 0.12)',
-              border: isAdmin ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(239, 68, 68, 0.3)',
-              color: isAdmin ? '#fbbf24' : '#fca5a5',
-              fontWeight: 700
-            }}
-            title={isAdmin ? "Open Admin Dashboard" : "Admin Security Login"}
-          >
-            🛡️ {isAdmin ? 'Admin Console' : 'Admin'}
-          </button>
+          {/* Admin master button: ONLY visible when logged in as Administrator */}
+          {isAdmin && (
+            <button
+              className="btn btn-sm"
+              onClick={onOpenAdmin}
+              style={{
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(239, 68, 68, 0.25))',
+                border: '1px solid rgba(245, 158, 11, 0.5)',
+                color: '#fbbf24',
+                fontWeight: 700
+              }}
+              title="Open Admin Master Control Console"
+            >
+              🛡️ Admin Console
+            </button>
+          )}
 
           <button className="btn btn-outline-danger btn-sm" onClick={onOpenSos}>
             <PlusCircle className="w-4 h-4" />
@@ -93,10 +129,26 @@ export default function Navbar({ currentUser, onOpenAuth, onOpenSos, onOpenUploa
               </div>
             </div>
           ) : (
-            <button className="btn btn-primary btn-sm" onClick={onOpenAuth}>
-              <UserCircle className="w-4 h-4" />
-              <span>Login / Register</span>
-            </button>
+            <div className="auth-buttons-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => onOpenAuth('login')}
+                style={{ padding: '6px 14px', fontWeight: 600 }}
+                title="Log into your existing LifePulse or Admin account"
+              >
+                <LogIn className="w-3.5 h-3.5 mr-1" />
+                <span>Login</span>
+              </button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => onOpenAuth('register')}
+                style={{ padding: '6px 16px', fontWeight: 600 }}
+                title="Register as a new Donor or Patient"
+              >
+                <UserPlus className="w-3.5 h-3.5 mr-1" />
+                <span>Register</span>
+              </button>
+            </div>
           )}
 
           <button
