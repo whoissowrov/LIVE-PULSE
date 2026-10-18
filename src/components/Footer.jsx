@@ -35,18 +35,11 @@ export default function Footer({ onOpenUpload, onOpenAuth, currentUser, onOpenAd
               <li><a href="#donorsSection">Find Donors Directory</a></li>
               <li><a href="#mapSection">Live Radar Map</a></li>
               {!currentUser ? (
-                <>
-                  <li>
-                    <a href="#login" onClick={(e) => { e.preventDefault(); onOpenAuth && onOpenAuth('login'); }}>
-                      🔑 Account Sign In
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#register" onClick={(e) => { e.preventDefault(); onOpenAuth && onOpenAuth('register'); }}>
-                      ✨ Register New Donor
-                    </a>
-                  </li>
-                </>
+                <li>
+                  <a href="#login" onClick={(e) => { e.preventDefault(); onOpenAuth && onOpenAuth('login'); }}>
+                    Member Access / Sign In
+                  </a>
+                </li>
               ) : isAdmin ? (
                 <li>
                   <a

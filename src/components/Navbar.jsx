@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Droplet, PlusCircle, UserCircle, UserPlus, LogIn, Menu, X } from 'lucide-react';
+import { Droplet, PlusCircle, UserCircle, Menu, X } from 'lucide-react';
 
 export default function Navbar({ currentUser, onOpenAuth, onOpenSos, onOpenUpload, onOpenAdmin }) {
   const [scrolled, setScrolled] = useState(false);
@@ -52,37 +52,6 @@ export default function Navbar({ currentUser, onOpenAuth, onOpenSos, onOpenUploa
                 </a>
               </li>
             )}
-
-            {/* Mobile login & register links */}
-            {!currentUser && (
-              <>
-                <li className="mobile-only-item">
-                  <a
-                    href="#login"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setMenuOpen(false);
-                      onOpenAuth('login');
-                    }}
-                  >
-                    🔑 Sign In
-                  </a>
-                </li>
-                <li className="mobile-only-item">
-                  <a
-                    href="#register"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setMenuOpen(false);
-                      onOpenAuth('register');
-                    }}
-                    style={{ color: 'var(--primary)', fontWeight: 600 }}
-                  >
-                    ✨ Register
-                  </a>
-                </li>
-              </>
-            )}
           </ul>
         </nav>
 
@@ -129,26 +98,14 @@ export default function Navbar({ currentUser, onOpenAuth, onOpenSos, onOpenUploa
               </div>
             </div>
           ) : (
-            <div className="auth-buttons-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => onOpenAuth('login')}
-                style={{ padding: '6px 14px', fontWeight: 600 }}
-                title="Log into your existing LifePulse or Admin account"
-              >
-                <LogIn className="w-3.5 h-3.5 mr-1" />
-                <span>Login</span>
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => onOpenAuth('register')}
-                style={{ padding: '6px 16px', fontWeight: 600 }}
-                title="Register as a new Donor or Patient"
-              >
-                <UserPlus className="w-3.5 h-3.5 mr-1" />
-                <span>Register</span>
-              </button>
-            </div>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => onOpenAuth('login')}
+              title="Login or Register for LifePulse"
+            >
+              <UserCircle className="w-4 h-4" />
+              <span>Login / Register</span>
+            </button>
           )}
 
           <button
