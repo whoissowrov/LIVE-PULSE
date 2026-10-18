@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, AlertTriangle, Search, Activity, Heart, ShieldCheck } from 'lucide-react';
+import { MapPin, AlertTriangle, Search, Activity, Heart, ShieldCheck, Compass } from 'lucide-react';
 
 export default function Hero({ onOpenUpload, onOpenSos, onQuickSearch, platformAlert }) {
   const [targetGroup, setTargetGroup] = useState('O+');
@@ -76,6 +76,17 @@ export default function Hero({ onOpenUpload, onOpenSos, onQuickSearch, platformA
               <button
                 className="btn btn-secondary btn-lg"
                 onClick={() => {
+                  const el = document.getElementById('mapSection');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                <Compass className="w-5 h-5 text-red-400" />
+                <span>Explore Live Map</span>
+              </button>
+
+              <button
+                className="btn btn-secondary btn-lg"
+                onClick={() => {
                   const el = document.getElementById('donorsSection');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
@@ -109,9 +120,17 @@ export default function Hero({ onOpenUpload, onOpenSos, onQuickSearch, platformA
                   <h3>Quick Blood Finder</h3>
                   <p>Locate donors matching your exact blood group</p>
                 </div>
-                <div className="live-indicator">
+                <div
+                  className="live-indicator"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    const el = document.getElementById('mapSection');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  title="Click to view full Live Radar Map"
+                >
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
-                  <span>LIVE RADAR</span>
+                  <span>LIVE RADAR MAP</span>
                 </div>
               </div>
 
