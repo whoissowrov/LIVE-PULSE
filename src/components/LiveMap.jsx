@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Compass, MapPin, Layers, Crosshair, Search, Phone, MessageSquare, AlertTriangle, RefreshCw, ZoomIn } from 'lucide-react';
+import { Compass, MapPin, Layers, Crosshair, Search, Phone, MessageSquare, AlertTriangle, RefreshCw, ZoomIn, ExternalLink } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -9,14 +9,40 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
   const markersLayerRef = useRef(null);
   const tileLayerRef = useRef(null);
 
-  const [mapTheme, setMapTheme] = useState('dark'); // 'dark' | 'streets' | 'satellite'
+  const [mapTheme, setMapTheme] = useState('google'); // 'google' | 'satellite' | 'terrain' | 'embed'
   const [selectedBlood, setSelectedBlood] = useState('');
   const [selectedType, setSelectedType] = useState('all'); // 'all' | 'donors' | 'sos'
   const [sidebarQuery, setSidebarQuery] = useState('');
+  const [activeCity, setActiveCity] = useState('Dhaka');
   const [locating, setLocating] = useState(false);
 
-  // Initialize Map
+  // Helper to get Google Maps Tile URL and options
+  const getGoogleTileConfig = (theme) => {
+    if (theme === 'satellite') {
+      return {
+        url: 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        subdomains: ['0', '1', '2', '3'],
+        attribution: '&copy; Google Maps Satellite'
+      };
+    }
+    if (theme === 'terrain') {
+      return {
+        url: 'https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+        subdomains: ['0', '1', '2', '3'],
+        attribution: '&copy; Google Maps Terrain'
+      };
+    }
+    // Default: Official Google Maps Standard Roadmap
+    return {
+      url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+      subdomains: ['0', '1', '2', '3'],
+      attribution: '&copy; Google Maps'
+    };
+  };
+
+  // Initialize Leaflet Map
   useEffect(() => {
+    if (mapTheme === 'embed') return;
     if (!mapContainerRef.current) return;
 
     if (mapContainerRef.current._leaflet_id) {
@@ -29,7 +55,6 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
       mapInstanceRef.current = null;
     }
 
-    // Default to Dhaka if currentUser is in Dhaka or undefined, or New York if US
     const centerLat = currentUser?.lat || 23.7806;
     const centerLng = currentUser?.lng || 90.3952;
 
@@ -40,24 +65,18 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
         attributionControl: true
       }).setView([centerLat, centerLng], 12);
 
-      // Create primary tile layer
-      const getTileUrl = (theme) => {
-        if (theme === 'streets') return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-        if (theme === 'satellite') return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-        return 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png';
-      };
-
-      const tileLayer = L.tileLayer(getTileUrl(mapTheme), {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO / Esri',
-        subdomains: mapTheme === 'satellite' ? [] : 'abcd',
-        maxZoom: 19
+      const tileConfig = getGoogleTileConfig(mapTheme);
+      const tileLayer = L.tileLayer(tileConfig.url, {
+        attribution: tileConfig.attribution,
+        subdomains: tileConfig.subdomains,
+        maxZoom: 20
       }).addTo(map);
 
       tileLayerRef.current = tileLayer;
       markersLayerRef.current = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
 
-      // Force recalculate sizes to avoid grey tiles
+      // Force recalculate sizes so tiles never fail or stay grey
       setTimeout(() => map.invalidateSize(), 150);
       setTimeout(() => map.invalidateSize(), 500);
       setTimeout(() => map.invalidateSize(), 1200);
@@ -75,30 +94,22 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
     } catch (err) {
       console.warn('Leaflet initialization warning:', err);
     }
-  }, []);
+  }, [mapTheme === 'embed']);
 
-  // Update Tile Layer when mapTheme changes
+  // Switch Tile Layer when theme changes
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
+    if (!map || mapTheme === 'embed') return;
 
     if (tileLayerRef.current) {
       map.removeLayer(tileLayerRef.current);
     }
 
-    let url = 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png';
-    let subdomains = 'abcd';
-    if (mapTheme === 'streets') {
-      url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-    } else if (mapTheme === 'satellite') {
-      url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-      subdomains = '';
-    }
-
-    const newLayer = L.tileLayer(url, {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO / Esri',
-      subdomains: subdomains || 'abcd',
-      maxZoom: 19
+    const tileConfig = getGoogleTileConfig(mapTheme);
+    const newLayer = L.tileLayer(tileConfig.url, {
+      attribution: tileConfig.attribution,
+      subdomains: tileConfig.subdomains,
+      maxZoom: 20
     }).addTo(map);
 
     tileLayerRef.current = newLayer;
@@ -109,11 +120,9 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
   useEffect(() => {
     const map = mapInstanceRef.current;
     const layer = markersLayerRef.current;
-    if (!map || !layer) return;
+    if (!map || !layer || mapTheme === 'embed') return;
 
     layer.clearLayers();
-    const bounds = L.latLngBounds();
-    let hasCoords = false;
 
     // 1. Add Donors
     if (selectedType === 'all' || selectedType === 'donors') {
@@ -122,46 +131,43 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
         if (selectedBlood && donor.bloodGroup !== selectedBlood) return;
 
         const latLng = [Number(donor.lat), Number(donor.lng)];
-        bounds.extend(latLng);
-        hasCoords = true;
-
         const isAvailable = donor.status === 'available';
+
         const donorIcon = L.divIcon({
           className: 'custom-map-marker',
           html: `
             <div style="
               background: ${isAvailable ? 'linear-gradient(135deg, #10b981, #047857)' : 'linear-gradient(135deg, #f59e0b, #d97706)'};
-              width: 34px; height: 34px; border-radius: 50%;
+              width: 36px; height: 36px; border-radius: 50%;
               display: flex; align-items: center; justify-content: center;
               color: #fff; font-weight: 800; font-size: 0.82rem;
-              border: 2px solid #fff; box-shadow: 0 4px 14px ${isAvailable ? 'rgba(16,185,129,0.6)' : 'rgba(245,158,11,0.6)'};
-              transition: transform 0.2s;
+              border: 2.5px solid #fff; box-shadow: 0 4px 16px ${isAvailable ? 'rgba(16,185,129,0.7)' : 'rgba(245,158,11,0.7)'};
               cursor: pointer;
             ">
               ${donor.bloodGroup}
             </div>
           `,
-          iconSize: [34, 34],
-          iconAnchor: [17, 17]
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
         });
 
         const marker = L.marker(latLng, { icon: donorIcon }).addTo(layer);
         marker.bindPopup(`
-          <div style="font-family:'Plus Jakarta Sans',sans-serif; min-width:210px; color:#1e293b;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <span style="font-size:0.7rem; font-weight:800; color:#059669; background:#dcfce7; padding:2px 7px; border-radius:6px; text-transform:uppercase;">
-                ${isAvailable ? '🟢 Available Donor' : '🟡 Busy / Donated'}
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; min-width:220px; color:#1e293b; padding:4px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:0.72rem; font-weight:800; color:#059669; background:#dcfce7; padding:3px 8px; border-radius:6px; text-transform:uppercase;">
+                ${isAvailable ? '🟢 Available Volunteer' : '🟡 Busy / Resting'}
               </span>
-              <span style="font-size:0.85rem; font-weight:800; color:#ef4444;">${donor.bloodGroup}</span>
+              <span style="font-size:0.9rem; font-weight:800; color:#ef4444;">${donor.bloodGroup}</span>
             </div>
-            <h4 style="margin:0 0 4px 0; font-size:1.05rem; font-weight:700; color:#0f172a;">${donor.name}</h4>
-            <p style="margin:0 0 4px 0; font-size:0.8rem; color:#475569;">📍 ${donor.city || 'City'} • ${donor.area || 'Metro Area'}</p>
-            <p style="margin:0 0 10px 0; font-size:0.75rem; color:#64748b;">🩸 ${donor.donationsCount || 0} Successful Donations</p>
-            <div style="display:flex; gap:6px;">
-              <a href="tel:${donor.phone}" style="flex:1; background:#ef4444; color:#fff; padding:7px 0; text-align:center; border-radius:8px; font-size:0.8rem; font-weight:700; text-decoration:none;">
+            <h4 style="margin:0 0 4px 0; font-size:1.1rem; font-weight:700; color:#0f172a;">${donor.name}</h4>
+            <p style="margin:0 0 4px 0; font-size:0.82rem; color:#475569;">📍 ${donor.city || 'City'} • ${donor.area || 'Metro Area'}</p>
+            <p style="margin:0 0 12px 0; font-size:0.76rem; color:#64748b;">🩸 ${donor.donationsCount || 0} Successful Donations</p>
+            <div style="display:flex; gap:8px;">
+              <a href="tel:${donor.phone}" style="flex:1; background:#ef4444; color:#fff; padding:8px 0; text-align:center; border-radius:8px; font-size:0.82rem; font-weight:700; text-decoration:none;">
                 Call Donor
               </a>
-              <a href="https://wa.me/${(donor.phone || '').replace(/[^0-9]/g, '')}" target="_blank" style="flex:1; background:#10b981; color:#fff; padding:7px 0; text-align:center; border-radius:8px; font-size:0.8rem; font-weight:700; text-decoration:none;">
+              <a href="https://wa.me/${(donor.phone || '').replace(/[^0-9]/g, '')}" target="_blank" style="flex:1; background:#10b981; color:#fff; padding:8px 0; text-align:center; border-radius:8px; font-size:0.82rem; font-weight:700; text-decoration:none;">
                 WhatsApp
               </a>
             </div>
@@ -177,50 +183,49 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
         if (selectedBlood && req.bloodGroup !== selectedBlood) return;
 
         const latLng = [Number(req.lat), Number(req.lng)];
-        bounds.extend(latLng);
-        hasCoords = true;
 
         const sosIcon = L.divIcon({
           className: 'custom-map-marker',
           html: `
             <div style="
               background: linear-gradient(135deg, #ef4444, #991b1b);
-              width: 38px; height: 38px; border-radius: 50%;
+              width: 40px; height: 40px; border-radius: 50%;
               display: flex; align-items: center; justify-content: center;
-              color: #fff; font-weight: 800; font-size: 0.8rem;
-              border: 2.5px solid #fff; box-shadow: 0 0 24px rgba(239,68,68,0.9);
+              color: #fff; font-weight: 800; font-size: 0.82rem;
+              border: 3px solid #fff; box-shadow: 0 0 26px rgba(239,68,68,0.95);
               animation: pulse-sos 1.6s infinite;
               cursor: pointer;
             ">
               SOS
             </div>
           `,
-          iconSize: [38, 38],
-          iconAnchor: [19, 19]
+          iconSize: [40, 40],
+          iconAnchor: [20, 20]
         });
 
         const marker = L.marker(latLng, { icon: sosIcon }).addTo(layer);
         marker.bindPopup(`
-          <div style="font-family:'Plus Jakarta Sans',sans-serif; min-width:230px; color:#1e293b;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <span style="font-size:0.7rem; font-weight:800; color:#dc2626; background:#fee2e2; padding:2px 7px; border-radius:6px; text-transform:uppercase;">
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; min-width:240px; color:#1e293b; padding:4px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:0.72rem; font-weight:800; color:#dc2626; background:#fee2e2; padding:3px 8px; border-radius:6px; text-transform:uppercase;">
                 🚨 Urgent Blood Needed
               </span>
-              <span style="font-size:0.9rem; font-weight:800; color:#dc2626;">${req.bloodGroup}</span>
+              <span style="font-size:0.95rem; font-weight:800; color:#dc2626;">${req.bloodGroup}</span>
             </div>
-            <h4 style="margin:0 0 4px 0; font-size:1.05rem; font-weight:700; color:#0f172a;">${req.patientName} (${req.units || 1} Unit${(req.units || 1) > 1 ? 's' : ''})</h4>
-            <p style="margin:0 0 4px 0; font-size:0.8rem; color:#475569;">🏥 ${req.hospital}</p>
-            <p style="margin:0 0 10px 0; font-size:0.75rem; color:#dc2626; font-weight:600;">⏱️ Required: ${req.requiredWithin || 'Immediate'}</p>
-            <a href="tel:${req.phone}" style="display:block; background:#dc2626; color:#fff; padding:8px 0; text-align:center; border-radius:8px; font-size:0.82rem; font-weight:700; text-decoration:none;">
+            <h4 style="margin:0 0 4px 0; font-size:1.1rem; font-weight:700; color:#0f172a;">${req.patientName} (${req.units || 1} Unit${(req.units || 1) > 1 ? 's' : ''})</h4>
+            <p style="margin:0 0 4px 0; font-size:0.82rem; color:#475569;">🏥 ${req.hospital}</p>
+            <p style="margin:0 0 12px 0; font-size:0.78rem; color:#dc2626; font-weight:600;">⏱️ Required: ${req.requiredWithin || 'Immediate'}</p>
+            <a href="tel:${req.phone}" style="display:block; background:#dc2626; color:#fff; padding:9px 0; text-align:center; border-radius:8px; font-size:0.84rem; font-weight:700; text-decoration:none;">
               Respond to SOS Now
             </a>
           </div>
         `);
       });
     }
-  }, [donors, requests, selectedBlood, selectedType]);
+  }, [donors, requests, selectedBlood, selectedType, mapTheme]);
 
-  const flyTo = (lat, lng, zoom = 15) => {
+  const flyTo = (lat, lng, zoom = 15, cityName = '') => {
+    if (cityName) setActiveCity(cityName);
     if (mapInstanceRef.current && lat && lng) {
       mapInstanceRef.current.flyTo([Number(lat), Number(lng)], zoom, { duration: 1.2 });
       mapInstanceRef.current.invalidateSize();
@@ -263,16 +268,15 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
         const { latitude, longitude } = pos.coords;
         const map = mapInstanceRef.current;
         if (map) {
-          flyTo(latitude, longitude, 14);
+          flyTo(latitude, longitude, 14, 'Current Location');
 
-          // Drop user pin
           const userIcon = L.divIcon({
             className: 'user-gps-marker',
             html: `
               <div style="
                 background: #0ea5e9; width: 22px; height: 22px;
                 border-radius: 50%; border: 3px solid #fff;
-                box-shadow: 0 0 16px #0ea5e9;
+                box-shadow: 0 0 18px #0ea5e9;
                 animation: pulse 1.5s infinite;
               "></div>
             `,
@@ -281,7 +285,7 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
           });
           L.marker([latitude, longitude], { icon: userIcon })
             .addTo(map)
-            .bindPopup('<b>📍 Your Current Location</b>')
+            .bindPopup('<b>📍 Your Current GPS Location</b>')
             .openPopup();
         }
       },
@@ -324,11 +328,11 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
         <div className="section-header">
           <span className="section-tag">
             <Compass className="w-3.5 h-3.5 inline mr-1 text-red-500" />
-            Interactive Live Radar
+            Official Google Map Radar
           </span>
           <h2 className="section-title">Live Geolocation Network Map</h2>
           <p className="section-description">
-            Real-time interactive radar displaying registered blood donors, hospitals, and critical emergency SOS requests. Select any location or jump directly to your region.
+            Powered by high-resolution Google Maps. Locate verified blood donors, hospitals, and critical emergency SOS calls with real-time GPS navigation.
           </p>
         </div>
 
@@ -353,8 +357,8 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              style={{ padding: '5px 12px', fontSize: '0.8rem' }}
-              onClick={() => flyTo(23.7806, 90.3952, 12)}
+              style={{ padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600 }}
+              onClick={() => flyTo(23.7806, 90.3952, 13, 'Dhaka')}
               title="Jump to Dhaka & Bangladesh Donors"
             >
               📍 Dhaka & Regional
@@ -362,8 +366,8 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              style={{ padding: '5px 12px', fontSize: '0.8rem' }}
-              onClick={() => flyTo(40.7306, -73.9352, 12)}
+              style={{ padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600 }}
+              onClick={() => flyTo(40.7306, -73.9352, 12, 'New York')}
               title="Jump to New York Donors"
             >
               📍 New York Metro
@@ -371,7 +375,7 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              style={{ padding: '5px 12px', fontSize: '0.8rem' }}
+              style={{ padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600 }}
               onClick={fitAllMarkers}
               title="Fit all markers in view"
             >
@@ -382,8 +386,9 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
               type="button"
               className="btn btn-sm"
               style={{
-                padding: '5px 12px',
-                fontSize: '0.8rem',
+                padding: '6px 14px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
                 background: 'rgba(14, 165, 233, 0.2)',
                 color: '#38bdf8',
                 border: '1px solid rgba(14, 165, 233, 0.4)'
@@ -428,62 +433,86 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
               <option value="sos">Urgent SOS Only</option>
             </select>
 
-            {/* Map Theme Buttons */}
-            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', padding: '2px', borderRadius: '8px' }}>
+            {/* Google Map Mode Switcher */}
+            <div
+              style={{
+                display: 'flex',
+                background: 'rgba(0,0,0,0.5)',
+                padding: '3px',
+                borderRadius: '10px',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}
+            >
               <button
                 type="button"
-                onClick={() => setMapTheme('dark')}
+                onClick={() => setMapTheme('google')}
                 style={{
-                  padding: '5px 10px',
-                  borderRadius: '6px',
+                  padding: '5px 12px',
+                  borderRadius: '7px',
                   border: 'none',
                   fontSize: '0.78rem',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: 'pointer',
-                  background: mapTheme === 'dark' ? 'var(--primary)' : 'transparent',
+                  background: mapTheme === 'google' ? 'var(--primary)' : 'transparent',
                   color: '#fff'
                 }}
               >
-                Dark
-              </button>
-              <button
-                type="button"
-                onClick={() => setMapTheme('streets')}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: mapTheme === 'streets' ? 'var(--primary)' : 'transparent',
-                  color: '#fff'
-                }}
-              >
-                Street
+                🗺️ Google Map
               </button>
               <button
                 type="button"
                 onClick={() => setMapTheme('satellite')}
                 style={{
-                  padding: '5px 10px',
-                  borderRadius: '6px',
+                  padding: '5px 12px',
+                  borderRadius: '7px',
                   border: 'none',
                   fontSize: '0.78rem',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: 'pointer',
                   background: mapTheme === 'satellite' ? 'var(--primary)' : 'transparent',
                   color: '#fff'
                 }}
               >
-                Satellite
+                🛰️ Satellite
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapTheme('terrain')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: mapTheme === 'terrain' ? 'var(--primary)' : 'transparent',
+                  color: '#fff'
+                }}
+              >
+                ⛰️ Terrain
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapTheme('embed')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: mapTheme === 'embed' ? 'linear-gradient(135deg, #0ea5e9, #2563eb)' : 'transparent',
+                  color: '#fff'
+                }}
+              >
+                🔍 Google Live Search
               </button>
             </div>
           </div>
         </div>
 
         {/* Map Body Wrapper */}
-        <div className="map-wrapper interactive-card" style={{ borderRadius: '0 0 20px 20px' }}>
+        <div className="map-wrapper interactive-card" style={{ borderRadius: '0 0 20px 20px', minHeight: '560px' }}>
           {/* Interactive Radar Sidebar */}
           <div className="map-sidebar">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -527,7 +556,10 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
                     key={req.id}
                     className="map-list-item"
                     style={{ borderColor: 'rgba(239, 68, 68, 0.45)', background: 'rgba(239, 68, 68, 0.08)' }}
-                    onClick={() => flyTo(req.lat, req.lng, 15)}
+                    onClick={() => {
+                      if (mapTheme === 'embed') setMapTheme('google');
+                      flyTo(req.lat, req.lng, 15, req.city);
+                    }}
                   >
                     <div className="map-list-title">
                       <span style={{ color: '#fca5a5', fontWeight: 700 }}>🚨 {req.patientName}</span>
@@ -545,7 +577,10 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
                   <div
                     key={d.id}
                     className="map-list-item"
-                    onClick={() => flyTo(d.lat, d.lng, 15)}
+                    onClick={() => {
+                      if (mapTheme === 'embed') setMapTheme('google');
+                      flyTo(d.lat, d.lng, 15, d.city);
+                    }}
                   >
                     <div className="map-list-title">
                       <span style={{ fontWeight: 600 }}>{d.name}</span>
@@ -565,19 +600,62 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
             </div>
           </div>
 
-          {/* Leaflet Map Canvas */}
-          <div
-            ref={mapContainerRef}
-            id="leafletMap"
-            style={{
-              width: '100%',
-              height: '560px',
-              minHeight: '560px',
-              background: '#07090e',
-              position: 'relative',
-              zIndex: 1
-            }}
-          />
+          {/* Map Display: Either Official Google Map Tiles OR Direct Google Maps Live Embed */}
+          {mapTheme === 'embed' ? (
+            <div style={{ position: 'relative', width: '100%', height: '560px', background: '#07090e' }}>
+              <iframe
+                title="Google Maps Live Hospital & Blood Bank Search"
+                src={`https://www.google.com/maps?q=blood+bank+hospital+emergency+${encodeURIComponent(activeCity || 'Dhaka')}&output=embed&z=13`}
+                width="100%"
+                height="100%"
+                style={{ border: 0, filter: 'contrast(1.05)' }}
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  background: 'rgba(15, 23, 42, 0.85)',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  fontSize: '0.78rem',
+                  color: '#38bdf8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backdropFilter: 'blur(8px)'
+                }}
+              >
+                <span>Google Maps Live Search: {activeCity}</span>
+                <a
+                  href={`https://www.google.com/maps/search/blood+bank+hospital+${encodeURIComponent(activeCity)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: '#fff', display: 'flex', alignItems: 'center' }}
+                  title="Open full Google Maps in new tab"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div
+              ref={mapContainerRef}
+              id="leafletMap"
+              style={{
+                width: '100%',
+                height: '560px',
+                minHeight: '560px',
+                background: '#e5e7eb',
+                position: 'relative',
+                zIndex: 1
+              }}
+            />
+          )}
         </div>
       </div>
     </section>
