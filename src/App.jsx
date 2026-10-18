@@ -13,6 +13,8 @@ import Footer from './components/Footer';
 import UploadDataModal from './components/UploadDataModal';
 import SosModal from './components/SosModal';
 import AuthModal from './components/AuthModal';
+import AdminDashboardModal from './components/AdminDashboardModal';
+import api from './api';
 
 import {
   DEFAULT_USERS,
@@ -62,6 +64,7 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isSosModalOpen, setIsSosModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
   // Search filter passed from hero
   const [searchFilters, setSearchFilters] = useState(null);
@@ -87,6 +90,7 @@ export default function App() {
       localStorage.setItem('lifepulse_react_current_user', JSON.stringify(currentUser));
     } else {
       localStorage.removeItem('lifepulse_react_current_user');
+      localStorage.removeItem('lifepulse_token');
     }
   }, [currentUser]);
 
@@ -99,7 +103,34 @@ export default function App() {
   }, [requests]);
 
   // Auth actions
-  const handleLogin = (email, password) => {
+  const handleLogin = async (email, password) => {
+    // Try backend API first
+    try {
+      const res = await api.login(email, password);
+      if (res?.success && res.user) {
+        localStorage.setItem('lifepulse_token', res.token);
+        const mappedUser = {
+          ...res.user,
+          lat: res.user.location?.lat || 23.8103,
+          lng: res.user.location?.lng || 90.4125,
+          city: res.user.location?.city || 'Dhaka',
+          area: res.user.location?.area || '',
+          nearestHospital: res.user.location?.hospital || '',
+          availableNow: res.user.isAvailable !== false
+        };
+        setCurrentUser(mappedUser);
+        setIsAuthModalOpen(false);
+        showToast(res.message || `Welcome back, ${res.user.name}!`, 'success');
+        return;
+      } else if (res?.message) {
+        showToast(res.message, 'danger');
+        return;
+      }
+    } catch (e) {
+      console.warn('Backend offline, falling back to local user store:', e);
+    }
+
+    // Local fallback
     const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
     if (!user) {
       showToast('No account found with this email. Please register.', 'danger');
@@ -114,7 +145,47 @@ export default function App() {
     showToast(`Welcome back, ${user.name}!`, 'success');
   };
 
-  const handleDemoLogin = (email) => {
+  const handleDemoLogin = async (email) => {
+    // Check if logging in as Admin
+    if (email === 'admin@lifepulse.org') {
+      try {
+        const res = await api.login('admin@lifepulse.org', 'admin123');
+        if (res?.success && res.user) {
+          localStorage.setItem('lifepulse_token', res.token);
+          const adminProfile = {
+            ...res.user,
+            role: 'admin',
+            lat: res.user.location?.lat || 23.7461,
+            lng: res.user.location?.lng || 90.3742
+          };
+          setCurrentUser(adminProfile);
+          setIsAuthModalOpen(false);
+          showToast('👑 Welcome back, Root Administrator! Admin Console unlocked.', 'success');
+          return;
+        }
+      } catch (e) {
+        console.warn('Backend admin login fallback:', e);
+      }
+
+      // Local Admin Profile fallback
+      const adminLocal = {
+        id: 'admin_primary_01',
+        name: 'System Administrator',
+        email: 'admin@lifepulse.org',
+        role: 'admin',
+        bloodGroup: 'O+',
+        phone: '+880 1711-000000',
+        city: 'Dhaka',
+        area: 'Dhanmondi',
+        isDonor: false,
+        isVerifiedDonor: true
+      };
+      setCurrentUser(adminLocal);
+      setIsAuthModalOpen(false);
+      showToast('👑 Logged in as Administrator! Admin Console unlocked in Navbar.', 'success');
+      return;
+    }
+
     const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
     if (user) {
       setCurrentUser(user);
@@ -258,6 +329,7 @@ export default function App() {
         currentUser={currentUser}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onOpenSos={() => setIsSosModalOpen(true)}
+        onOpenAdmin={() => setIsAdminModalOpen(true)}
         onOpenUpload={() => {
           if (!currentUser) setIsAuthModalOpen(true);
           else setIsUploadModalOpen(true);
@@ -337,6 +409,13 @@ export default function App() {
         onLogin={handleLogin}
         onRegister={handleRegister}
         onDemoLogin={handleDemoLogin}
+      />
+
+      <AdminDashboardModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        currentUser={currentUser}
+        showToast={showToast}
       />
 
       {/* Floating Animated Toast Notifications */}

@@ -48,22 +48,36 @@ export default function AuthModal({ isOpen, onClose, onLogin, onRegister, onDemo
               <Zap className="w-3.5 h-3.5 text-amber-400" />
               <span>Instant One-Click Demo Access:</span>
             </p>
-            <div className="demo-buttons-row">
+            <div className="demo-buttons-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                style={{ flex: 1 }}
                 onClick={() => onDemoLogin('sarah.chen@example.com')}
+                title="Log in as Donor"
               >
-                👤 Sarah (Donor O-)
+                👤 Donor (O-)
               </button>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                style={{ flex: 1 }}
                 onClick={() => onDemoLogin('alex.rivera@example.com')}
+                title="Log in as Hospital Requester"
               >
-                🏥 Alex (Hospital A+)
+                🏥 Alex (A+)
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(239,68,68,0.25), rgba(185,28,28,0.35))',
+                  border: '1px solid rgba(239,68,68,0.4)',
+                  color: '#fca5a5',
+                  fontWeight: 700
+                }}
+                onClick={() => onDemoLogin('admin@lifepulse.org')}
+                title="Log in as Administrator"
+              >
+                🛡️ Admin
               </button>
             </div>
           </div>

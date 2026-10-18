@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Droplet, PlusCircle, UserCircle, Menu, X } from 'lucide-react';
 
-export default function Navbar({ currentUser, onOpenAuth, onOpenSos, onOpenUpload }) {
+export default function Navbar({ currentUser, onOpenAuth, onOpenSos, onOpenUpload, onOpenAdmin }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -12,6 +12,8 @@ export default function Navbar({ currentUser, onOpenAuth, onOpenSos, onOpenUploa
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const isAdmin = currentUser?.role === 'admin';
 
   return (
     <header className={`navbar ${scrolled ? 'scrolled' : ''}`}>
@@ -33,10 +35,41 @@ export default function Navbar({ currentUser, onOpenAuth, onOpenSos, onOpenUploa
             <li><a href="#donorsSection" onClick={() => setMenuOpen(false)}>Find Donors</a></li>
             <li><a href="#mapSection" onClick={() => setMenuOpen(false)}>Live Map</a></li>
             <li><a href="#compatibilitySection" onClick={() => setMenuOpen(false)}>Compatibility</a></li>
+            {isAdmin && (
+              <li>
+                <a
+                  href="#admin"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMenuOpen(false);
+                    onOpenAdmin();
+                  }}
+                  style={{ color: '#f59e0b', fontWeight: 'bold' }}
+                >
+                  🛡️ Admin Console
+                </a>
+              </li>
+            )}
           </ul>
         </nav>
 
         <div className="nav-actions">
+          {isAdmin && (
+            <button
+              className="btn btn-sm"
+              onClick={onOpenAdmin}
+              style={{
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(239, 68, 68, 0.2))',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                color: '#fbbf24',
+                fontWeight: 700
+              }}
+              title="Open Admin Dashboard"
+            >
+              🛡️ Admin
+            </button>
+          )}
+
           <button className="btn btn-outline-danger btn-sm" onClick={onOpenSos}>
             <PlusCircle className="w-4 h-4" />
             <span>Post SOS</span>
