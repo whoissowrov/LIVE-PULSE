@@ -27,8 +27,16 @@
       <p style="color: #94a3b8; font-size: 0.9rem;">Connecting blood donors with emergency patients...</p>
     </div>
   </div>
+  <!-- Ensure visitor starts fresh as logged-out guest with "Login / Register" button -->
+  <script>
+    try {
+      localStorage.removeItem('lifepulse_react_current_user');
+      localStorage.removeItem('lifepulse_current_user');
+      localStorage.removeItem('lifepulse_token');
+    } catch (e) {}
+  </script>
 
   <!-- Compiled Production React Bundle (Executes in Live Server, Vite, or any HTTP server) -->
-  <script type="module" crossorigin src="./assets/index-xOLPXN_1.js"></script>
+  <script type="module" crossorigin src="./assets/index-C5TE1Njh.js"></script>
 </body>
 </html>
