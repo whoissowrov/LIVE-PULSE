@@ -13,7 +13,7 @@ import Footer from './components/Footer';
 import UploadDataModal from './components/UploadDataModal';
 import SosModal from './components/SosModal';
 import AuthModal from './components/AuthModal';
-import AdminDashboardModal from './components/AdminDashboardModal';
+import AdminPortal from './components/AdminPortal';
 import api from './api';
 
 import {
@@ -59,6 +59,7 @@ export default function App() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isSosModalOpen, setIsSosModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [platformAlert, setPlatformAlert] = useState('Urgent demand for O-Negative and B-Positive at Mount Sinai & NYU Langone ER wards.');
 
   // Search filter passed from hero
   const [searchFilters, setSearchFilters] = useState(null);
@@ -328,6 +329,7 @@ export default function App() {
 
       {/* 4. Hero Section */}
       <Hero
+        platformAlert={platformAlert}
         onOpenUpload={() => {
           if (!currentUser) {
             setIsAuthModalOpen(true);
@@ -376,6 +378,7 @@ export default function App() {
           if (!currentUser) setIsAuthModalOpen(true);
           else setIsUploadModalOpen(true);
         }}
+        onOpenAdmin={() => setIsAdminModalOpen(true)}
       />
 
       {/* Modals */}
@@ -401,11 +404,14 @@ export default function App() {
         onDemoLogin={handleDemoLogin}
       />
 
-      <AdminDashboardModal
+      <AdminPortal
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
         currentUser={currentUser}
+        setCurrentUser={setCurrentUser}
         showToast={showToast}
+        platformAlert={platformAlert}
+        setPlatformAlert={setPlatformAlert}
       />
 
       {/* Floating Animated Toast Notifications */}

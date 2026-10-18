@@ -160,6 +160,57 @@ export const api = {
       headers: getHeaders()
     });
     return await res.json();
+  },
+
+  adminCreateUser: async (userData) => {
+    const res = await fetch(`${API_BASE_URL}/admin/users`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(userData)
+    });
+    return await res.json();
+  },
+
+  adminUpdateUser: async (id, userData) => {
+    const res = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(userData)
+    });
+    return await res.json();
+  },
+
+  adminGetDonations: async () => {
+    const res = await fetch(`${API_BASE_URL}/admin/donations`, {
+      headers: getHeaders()
+    });
+    return await res.json();
+  },
+
+  adminLogDonation: async (donationData) => {
+    const res = await fetch(`${API_BASE_URL}/admin/donations`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(donationData)
+    });
+    return await res.json();
+  },
+
+  adminDeleteDonation: async (id) => {
+    const res = await fetch(`${API_BASE_URL}/admin/donations/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    return await res.json();
+  },
+
+  adminUpdateSos: async (id, sosData) => {
+    const res = await fetch(`${API_BASE_URL}/admin/sos/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(sosData)
+    });
+    return await res.json();
   }
 };
 

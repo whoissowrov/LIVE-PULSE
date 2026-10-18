@@ -35,40 +35,38 @@ export default function Navbar({ currentUser, onOpenAuth, onOpenSos, onOpenUploa
             <li><a href="#donorsSection" onClick={() => setMenuOpen(false)}>Find Donors</a></li>
             <li><a href="#mapSection" onClick={() => setMenuOpen(false)}>Live Map</a></li>
             <li><a href="#compatibilitySection" onClick={() => setMenuOpen(false)}>Compatibility</a></li>
-            {isAdmin && (
-              <li>
-                <a
-                  href="#admin"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setMenuOpen(false);
-                    onOpenAdmin();
-                  }}
-                  style={{ color: '#f59e0b', fontWeight: 'bold' }}
-                >
-                  🛡️ Admin Console
-                </a>
-              </li>
-            )}
+            <li>
+              <a
+                href="#admin"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMenuOpen(false);
+                  onOpenAdmin();
+                }}
+                style={{ color: isAdmin ? '#fbbf24' : '#f87171', fontWeight: 700 }}
+              >
+                🛡️ {isAdmin ? 'Admin Console' : 'Admin Portal'}
+              </a>
+            </li>
           </ul>
         </nav>
 
         <div className="nav-actions">
-          {isAdmin && (
-            <button
-              className="btn btn-sm"
-              onClick={onOpenAdmin}
-              style={{
-                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(239, 68, 68, 0.2))',
-                border: '1px solid rgba(245, 158, 11, 0.4)',
-                color: '#fbbf24',
-                fontWeight: 700
-              }}
-              title="Open Admin Dashboard"
-            >
-              🛡️ Admin
-            </button>
-          )}
+          <button
+            className="btn btn-sm"
+            onClick={onOpenAdmin}
+            style={{
+              background: isAdmin
+                ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(239, 68, 68, 0.25))'
+                : 'rgba(239, 68, 68, 0.12)',
+              border: isAdmin ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(239, 68, 68, 0.3)',
+              color: isAdmin ? '#fbbf24' : '#fca5a5',
+              fontWeight: 700
+            }}
+            title={isAdmin ? "Open Admin Dashboard" : "Admin Security Login"}
+          >
+            🛡️ {isAdmin ? 'Admin Console' : 'Admin'}
+          </button>
 
           <button className="btn btn-outline-danger btn-sm" onClick={onOpenSos}>
             <PlusCircle className="w-4 h-4" />

@@ -241,21 +241,144 @@ router.get('/sos', (req, res) => {
   }
 });
 
-// @route   DELETE /api/admin/sos/:id
-// @desc    Permanently delete an SOS request
+// @route   POST /api/admin/users
+// @desc    Admin directly creates a new user or donor
 // @access  Admin Only
-router.delete('/sos/:id', (req, res) => {
+router.post('/users', async (req, res) => {
   try {
-    const deleted = SosRequests.findByIdAndDelete(req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ success: false, message: 'SOS Request not found.' });
+    const { name, email, password, phone, bloodGroup, role = 'user', isDonor = true, city, area, hospital } = req.body;
+
+    if (!name || !email || !bloodGroup) {
+      return res.status(400).json({ success: false, message: 'Name, email, and blood group are required.' });
     }
-    res.json({
-      success: true,
-      message: 'Emergency request deleted permanently.'
+
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = Users.findOne(u => u.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'An account with this email already exists.' });
+    }
+
+    const newUser = Users.create({
+      name: name.trim(),
+      email: cleanEmail,
+      password: password || 'pass123',
+      phone: phone || '',
+      bloodGroup: bloodGroup.toUpperCase(),
+      role: ['user', 'admin'].includes(role) ? role : 'user',
+      isDonor: Boolean(isDonor),
+      isVerifiedDonor: true, // admin created is verified by default
+      isAvailable: true,
+      totalDonations: 0,
+      location: {
+        city: city || 'Dhaka',
+        area: area || '',
+        hospital: hospital || '',
+        lat: 23.8103,
+        lng: 90.4125
+      }
     });
+
+    const { password: _, ...safeUser } = newUser;
+    res.status(201).json({ success: true, message: `User ${name} created by admin successfully.`, user: safeUser });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error deleting SOS request.' });
+    res.status(500).json({ success: false, message: 'Error creating user.' });
+  }
+});
+
+// @route   PUT /api/admin/users/:id
+// @desc    Admin updates any user profile
+// @access  Admin Only
+router.put('/users/:id', (req, res) => {
+  try {
+    const { name, email, phone, bloodGroup, role, isDonor, isAvailable, isVerifiedDonor, location } = req.body;
+    const updates = {};
+    if (name) updates.name = name.trim();
+    if (email) updates.email = email.trim().toLowerCase();
+    if (phone !== undefined) updates.phone = phone;
+    if (bloodGroup) updates.bloodGroup = bloodGroup.toUpperCase();
+    if (role) updates.role = role;
+    if (isDonor !== undefined) updates.isDonor = Boolean(isDonor);
+    if (isAvailable !== undefined) updates.isAvailable = Boolean(isAvailable);
+    if (isVerifiedDonor !== undefined) updates.isVerifiedDonor = Boolean(isVerifiedDonor);
+    if (location) updates.location = location;
+
+    const updated = Users.findByIdAndUpdate(req.params.id, updates);
+    if (!updated) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const { password: _, ...safeUser } = updated;
+    res.json({ success: true, message: 'User updated successfully.', user: safeUser });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error updating user.' });
+  }
+});
+
+// @route   GET /api/admin/donations
+// @desc    Get all donation records
+// @access  Admin Only
+router.get('/donations', (req, res) => {
+  try {
+    const all = DonationHistory.find();
+    res.json({ success: true, count: all.length, donations: all });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching donations.' });
+  }
+});
+
+// @route   POST /api/admin/donations
+// @desc    Admin logs a donation
+// @access  Admin Only
+router.post('/donations', (req, res) => {
+  try {
+    const { donorName, bloodGroup, hospital, units, donationDate, recipientNotes } = req.body;
+    const rec = DonationHistory.create({
+      donorName: donorName || 'Verified Donor',
+      bloodGroup: (bloodGroup || 'O+').toUpperCase(),
+      hospital: hospital || 'Central Blood Bank',
+      units: Number(units) || 1,
+      donationDate: donationDate || new Date().toISOString(),
+      recipientNotes: recipientNotes || 'Admin verified record',
+      status: 'verified'
+    });
+    res.status(201).json({ success: true, message: 'Donation recorded.', donation: rec });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error logging donation.' });
+  }
+});
+
+// @route   DELETE /api/admin/donations/:id
+// @desc    Delete a donation record
+// @access  Admin Only
+router.delete('/donations/:id', (req, res) => {
+  try {
+    const deleted = DonationHistory.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'Donation not found.' });
+    res.json({ success: true, message: 'Donation record deleted.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error deleting donation.' });
+  }
+});
+
+// @route   PUT /api/admin/sos/:id
+// @desc    Update any emergency SOS request
+// @access  Admin Only
+router.put('/sos/:id', (req, res) => {
+  try {
+    const { patientName, bloodGroup, unitsNeeded, hospital, city, urgentLevel, status } = req.body;
+    const updates = {};
+    if (patientName) updates.patientName = patientName;
+    if (bloodGroup) updates.bloodGroup = bloodGroup.toUpperCase();
+    if (unitsNeeded) updates.unitsNeeded = Number(unitsNeeded);
+    if (hospital) updates.hospital = hospital;
+    if (city) updates.city = city;
+    if (urgentLevel) updates.urgentLevel = urgentLevel;
+    if (status) updates.status = status;
+
+    const updated = SosRequests.findByIdAndUpdate(req.params.id, updates);
+    if (!updated) return res.status(404).json({ success: false, message: 'SOS request not found.' });
+
+    res.json({ success: true, message: 'SOS request updated.', request: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error updating SOS request.' });
   }
 });
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MapPin, AlertTriangle, Search, Activity, Heart, ShieldCheck } from 'lucide-react';
 
-export default function Hero({ onOpenUpload, onOpenSos, onQuickSearch }) {
+export default function Hero({ onOpenUpload, onOpenSos, onQuickSearch, platformAlert }) {
   const [targetGroup, setTargetGroup] = useState('O+');
   const [city, setCity] = useState('');
 
@@ -26,7 +26,7 @@ export default function Hero({ onOpenUpload, onOpenSos, onQuickSearch }) {
         <div className="banner-left">
           <span className="banner-tag">CRITICAL ALERT</span>
           <span>
-            Urgent demand for <strong>O-Negative</strong> and <strong>B-Positive</strong> at Mount Sinai & NYU Langone ER wards.
+            {platformAlert || 'Urgent demand for O-Negative and B-Positive at Mount Sinai & NYU Langone ER wards.'}
           </span>
         </div>
         <button
