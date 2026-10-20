@@ -42,7 +42,11 @@ export default function SosRequests({ requests }) {
                         <Hospital className="w-4 h-4 text-red-500 inline mr-1" /> {req.hospital}
                       </span>
                       <span>
-                        <MapPin className="w-4 h-4 text-red-500 inline mr-1" /> {req.city}
+                        <MapPin className="w-4 h-4 text-red-500 inline mr-1" />{' '}
+                        {req.village ? `${req.village}, ` : ''}
+                        {req.union ? `${req.union}, ` : ''}
+                        {req.upazila ? `${req.upazila}, ` : ''}
+                        {req.district || req.city || 'Bangladesh'}
                       </span>
                       <span>
                         <Clock className="w-4 h-4 text-red-500 inline mr-1" /> {req.requiredWithin}

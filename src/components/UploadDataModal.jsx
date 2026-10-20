@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, UploadCloud, Crosshair, Camera, CheckCircle2, AlertCircle, Save } from 'lucide-react';
+import BangladeshLocationSelector from './BangladeshLocationSelector';
 
 export default function UploadDataModal({ isOpen, onClose, currentUser, onSave, showToast }) {
   const [formData, setFormData] = useState({
@@ -11,7 +12,12 @@ export default function UploadDataModal({ isOpen, onClose, currentUser, onSave, 
     phone: '',
     whatsapp: '',
     emergencyContact: '',
-    city: '',
+    division: 'Dhaka',
+    district: 'Dhaka',
+    upazila: '',
+    union: '',
+    village: '',
+    city: 'Dhaka',
     area: '',
     address: '',
     nearestHospital: '',
@@ -40,7 +46,12 @@ export default function UploadDataModal({ isOpen, onClose, currentUser, onSave, 
         phone: currentUser.phone || '',
         whatsapp: currentUser.whatsapp || currentUser.phone || '',
         emergencyContact: currentUser.emergencyContact || '',
-        city: currentUser.city || 'New York',
+        division: currentUser.division || 'Dhaka',
+        district: currentUser.district || currentUser.city || 'Dhaka',
+        upazila: currentUser.upazila || '',
+        union: currentUser.union || '',
+        village: currentUser.village || '',
+        city: currentUser.city || 'Dhaka',
         area: currentUser.area || '',
         address: currentUser.address || '',
         nearestHospital: currentUser.nearestHospital || '',
@@ -309,51 +320,49 @@ export default function UploadDataModal({ isOpen, onClose, currentUser, onSave, 
                 </button>
               </div>
 
-              <div className="form-row-2">
-                <div className="form-group">
-                  <label className="form-label">City <span className="req">*</span></label>
-                  <input
-                    type="text"
-                    name="city"
-                    className="form-input"
-                    placeholder="e.g. New York, Brooklyn, Chicago"
-                    value={formData.city}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Neighborhood / Area</label>
-                  <input
-                    type="text"
-                    name="area"
-                    className="form-input"
-                    placeholder="e.g. Upper East Side, Downtown"
-                    value={formData.area}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
+              {/* Bangladeshi Zilla, Upazila, Union, and Village Hierarchy */}
+              <BangladeshLocationSelector
+                division={formData.division}
+                district={formData.district}
+                upazila={formData.upazila}
+                union={formData.union}
+                village={formData.village}
+                onChange={(loc) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    division: loc.division,
+                    district: loc.district,
+                    upazila: loc.upazila,
+                    union: loc.union,
+                    village: loc.village,
+                    city: loc.city,
+                    area: loc.area,
+                    lat: loc.lat || prev.lat,
+                    lng: loc.lng || prev.lng
+                  }));
+                }}
+                required
+              />
 
-              <div className="form-group">
-                <label className="form-label">Street Address / Landmark</label>
+              <div className="form-group" style={{ marginTop: '14px' }}>
+                <label className="form-label">Street Address / Landmark (রাস্তা / ল্যান্ডমার্ক)</label>
                 <input
                   type="text"
                   name="address"
                   className="form-input"
-                  placeholder="e.g. 120 Tech Way, Suite 4B"
+                  placeholder="e.g. House 14, Road 5, Block B"
                   value={formData.address}
                   onChange={handleChange}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nearest Hospital or Medical Center</label>
+                <label className="form-label">Nearest Hospital / Medical Center in Bangladesh</label>
                 <input
                   type="text"
                   name="nearestHospital"
                   className="form-input"
-                  placeholder="e.g. Mount Sinai Hospital, Bellevue"
+                  placeholder="e.g. Dhaka Medical College Hospital / BSMMU / Upazila Health Complex"
                   value={formData.nearestHospital}
                   onChange={handleChange}
                 />

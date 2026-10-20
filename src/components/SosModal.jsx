@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, AlertTriangle, Send } from 'lucide-react';
+import BangladeshLocationSelector from './BangladeshLocationSelector';
 
 export default function SosModal({ isOpen, onClose, onSubmitSos }) {
   const [formData, setFormData] = useState({
@@ -7,7 +8,15 @@ export default function SosModal({ isOpen, onClose, onSubmitSos }) {
     bloodGroup: 'O-',
     units: 2,
     hospital: '',
-    city: '',
+    division: 'Dhaka',
+    district: 'Dhaka',
+    upazila: '',
+    union: '',
+    village: '',
+    city: 'Dhaka',
+    area: '',
+    lat: 23.8103,
+    lng: 90.4125,
     contactPerson: '',
     phone: '',
     urgency: 'critical'
@@ -117,50 +126,63 @@ export default function SosModal({ isOpen, onClose, onSubmitSos }) {
                 type="text"
                 name="hospital"
                 className="form-input"
-                placeholder="e.g. Mount Sinai Hospital, ICU Ward 4"
+                placeholder="e.g. Dhaka Medical College Hospital, ICU Ward 4"
                 value={formData.hospital}
                 onChange={handleChange}
                 required
               />
             </div>
 
-            <div className="form-row-2">
-              <div className="form-group">
-                <label className="form-label">City / Borough</label>
-                <input
-                  type="text"
-                  name="city"
-                  className="form-input"
-                  placeholder="e.g. Manhattan, NY"
-                  value={formData.city}
-                  onChange={handleChange}
-                />
-              </div>
+            {/* Bangladeshi Location Selector */}
+            <BangladeshLocationSelector
+              division={formData.division}
+              district={formData.district}
+              upazila={formData.upazila}
+              union={formData.union}
+              village={formData.village}
+              onChange={(loc) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  division: loc.division,
+                  district: loc.district,
+                  upazila: loc.upazila,
+                  union: loc.union,
+                  village: loc.village,
+                  city: loc.city,
+                  area: loc.area,
+                  lat: loc.lat || prev.lat,
+                  lng: loc.lng || prev.lng
+                }));
+              }}
+              helperText="Pinpoint the exact Bangladeshi Zilla, Upazila, and Union/Village where the patient requires blood."
+              required
+            />
 
+            <div className="form-row-2" style={{ marginTop: '10px' }}>
               <div className="form-group">
-                <label className="form-label">Contact Person</label>
+                <label className="form-label">Contact Person / Attendant</label>
                 <input
                   type="text"
                   name="contactPerson"
                   className="form-input"
-                  placeholder="e.g. Dr. Roberts / Attendant"
+                  placeholder="e.g. Patient Relative / Doctor"
                   value={formData.contactPerson}
                   onChange={handleChange}
                 />
               </div>
-            </div>
 
-            <div className="form-group">
-              <label className="form-label">Emergency Phone Number <span className="req">*</span></label>
-              <input
-                type="tel"
-                name="phone"
-                className="form-input"
-                placeholder="+1 (555) 911-0000"
-                value={formData.phone}
-                onChange={handleChange}
-                required
-              />
+              <div className="form-group">
+                <label className="form-label">Emergency Phone Number <span className="req">*</span></label>
+                <input
+                  type="tel"
+                  name="phone"
+                  className="form-input"
+                  placeholder="01711-XXXXXX or +880 1..."
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>

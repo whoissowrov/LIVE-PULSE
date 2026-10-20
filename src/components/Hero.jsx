@@ -1,48 +1,56 @@
 import React, { useState } from 'react';
-import { MapPin, AlertTriangle, Search, Activity, Heart, ShieldCheck, Compass } from 'lucide-react';
+import { MapPin, Navigation, AlertTriangle, Search, Activity, Heart, ShieldCheck, Compass, Hospital } from 'lucide-react';
+import { BANGLADESH_DISTRICTS, getUpazilasByDistrict } from '../data/bangladeshGeoData';
 
-export default function Hero({ onOpenUpload, onOpenSos, onQuickSearch, platformAlert }) {
+export default function Hero({ onOpenUpload, onOpenSos, onQuickSearch, onNavigate, platformAlert }) {
   const [targetGroup, setTargetGroup] = useState('O+');
-  const [city, setCity] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedUpazila, setSelectedUpazila] = useState('');
+
+  const availableUpazilas = selectedDistrict
+    ? getUpazilasByDistrict(selectedDistrict)
+    : [];
 
   const handleSearch = (e) => {
     e.preventDefault();
-    onQuickSearch({ bloodGroup: targetGroup, city });
-    const targetSection = document.getElementById('donorsSection');
-    if (targetSection) targetSection.scrollIntoView({ behavior: 'smooth' });
+    const cityQuery = selectedUpazila
+      ? `${selectedUpazila}, ${selectedDistrict}`
+      : selectedDistrict;
+    onQuickSearch({
+      bloodGroup: targetGroup,
+      district: selectedDistrict,
+      upazila: selectedUpazila,
+      city: cityQuery
+    });
+    if (onNavigate) {
+      onNavigate('donors');
+    } else {
+      const targetSection = document.getElementById('donorsSection');
+      if (targetSection) targetSection.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const handleChipClick = (group) => {
     setTargetGroup(group);
-    onQuickSearch({ bloodGroup: group, city });
-    const targetSection = document.getElementById('donorsSection');
-    if (targetSection) targetSection.scrollIntoView({ behavior: 'smooth' });
+    const cityQuery = selectedUpazila
+      ? `${selectedUpazila}, ${selectedDistrict}`
+      : selectedDistrict;
+    onQuickSearch({
+      bloodGroup: group,
+      district: selectedDistrict,
+      upazila: selectedUpazila,
+      city: cityQuery
+    });
+    if (onNavigate) {
+      onNavigate('donors');
+    } else {
+      const targetSection = document.getElementById('donorsSection');
+      if (targetSection) targetSection.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
-    <>
-      {/* Top Urgent Alert Strip */}
-      <div className="emergency-banner-strip">
-        <div className="banner-left">
-          <span className="banner-tag">CRITICAL ALERT</span>
-          <span>
-            {platformAlert || 'Urgent demand for O-Negative and B-Positive at Mount Sinai & NYU Langone ER wards.'}
-          </span>
-        </div>
-        <button
-          className="btn btn-sm btn-secondary"
-          onClick={() => {
-            const el = document.getElementById('requestsSection');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}
-        >
-          <Activity className="w-3.5 h-3.5 text-red-400" />
-          <span>View Live SOS</span>
-        </button>
-      </div>
-
-      {/* Main Hero Grid */}
-      <section className="hero-section" id="home">
+    <section className="hero-section" id="home">
         <div className="hero-glow-1" />
         <div className="hero-glow-2" />
         <div className="container hero-grid">
@@ -76,23 +84,57 @@ export default function Hero({ onOpenUpload, onOpenSos, onQuickSearch, platformA
               <button
                 className="btn btn-secondary btn-lg"
                 onClick={() => {
-                  const el = document.getElementById('mapSection');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  if (onNavigate) onNavigate('districts');
+                  else {
+                    const el = document.getElementById('regionalTracker');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }
                 }}
               >
-                <Compass className="w-5 h-5 text-red-400" />
-                <span>Explore Live Map</span>
+                <Activity className="w-5 h-5 text-emerald-400" />
+                <span>District & Village Tracker</span>
               </button>
 
               <button
                 className="btn btn-secondary btn-lg"
                 onClick={() => {
-                  const el = document.getElementById('donorsSection');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  if (onNavigate) onNavigate('hospitals');
+                  else {
+                    const el = document.getElementById('hospitalsSection');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
+              >
+                <Hospital className="w-5 h-5 text-sky-400" />
+                <span>All BD Hospitals &amp; Locations</span>
+              </button>
+
+              <button
+                className="btn btn-secondary btn-lg"
+                onClick={() => {
+                  if (onNavigate) onNavigate('donors');
+                  else {
+                    const el = document.getElementById('donorsSection');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }
                 }}
               >
                 <Search className="w-5 h-5" />
                 <span>Search Donors</span>
+              </button>
+
+              <button
+                className="btn btn-secondary btn-lg"
+                onClick={() => {
+                  if (onNavigate) onNavigate('map');
+                  else {
+                    const el = document.getElementById('mapSection');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
+              >
+                <Compass className="w-5 h-5 text-red-400" />
+                <span>Explore Live Map</span>
               </button>
             </div>
 
@@ -177,16 +219,68 @@ export default function Hero({ onOpenUpload, onOpenSos, onQuickSearch, platformA
                   </div>
 
                   <div>
-                    <label className="form-label-compact">Location / City</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label className="form-label-compact" style={{ margin: 0 }}>
+                        District / Zilla (জেলা)
+                      </label>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        64 Districts
+                      </span>
+                    </div>
                     <div className="input-with-icon">
-                      <MapPin className="w-4 h-4 text-slate-400" />
-                      <input
-                        type="text"
+                      <MapPin className="w-4 h-4 text-red-500" />
+                      <select
                         className="form-control"
-                        placeholder="e.g. New York, Brooklyn, Queens"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                      />
+                        value={selectedDistrict}
+                        onChange={(e) => {
+                          setSelectedDistrict(e.target.value);
+                          setSelectedUpazila('');
+                        }}
+                      >
+                        <option value="">All / Select District (সব জেলা)</option>
+                        {BANGLADESH_DISTRICTS.map((d) => (
+                          <option key={d.id} value={d.name}>
+                            {d.name} ({d.bnName}) - {d.division}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label className="form-label-compact" style={{ margin: 0 }}>
+                        Upazila / Sub-District (উপজেলা)
+                      </label>
+                      {selectedDistrict && availableUpazilas.length > 0 && (
+                        <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600 }}>
+                          {availableUpazilas.length} Upazilas
+                        </span>
+                      )}
+                    </div>
+                    <div className="input-with-icon">
+                      <Navigation className="w-4 h-4 text-emerald-400" />
+                      <select
+                        className="form-control"
+                        value={selectedUpazila}
+                        onChange={(e) => setSelectedUpazila(e.target.value)}
+                        disabled={!selectedDistrict}
+                        style={{
+                          opacity: !selectedDistrict ? 0.65 : 1,
+                          cursor: !selectedDistrict ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        <option value="">
+                          {selectedDistrict
+                            ? `All Upazilas in ${selectedDistrict} (সকল উপজেলা)`
+                            : 'Select District first (প্রথমে জেলা নির্বাচন করুন)'}
+                        </option>
+                        {availableUpazilas.map((upz) => (
+                          <option key={upz} value={upz}>
+                            {upz}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
@@ -200,6 +294,5 @@ export default function Hero({ onOpenUpload, onOpenSos, onQuickSearch, platformA
           </div>
         </div>
       </section>
-    </>
   );
 }

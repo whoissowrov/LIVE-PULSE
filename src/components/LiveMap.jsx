@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Compass, MapPin, Layers, Crosshair, Search, Phone, MessageSquare, AlertTriangle, RefreshCw, ZoomIn, ExternalLink } from 'lucide-react';
+import { Compass, MapPin, Layers, Crosshair, Search, Phone, MessageSquare, AlertTriangle, RefreshCw, ZoomIn, ExternalLink, Building2, Hospital } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { BANGLADESH_HOSPITALS, getHospitalGoogleMapsUrl } from '../data/bangladeshHospitalsData';
 
 export default function LiveMap({ donors = [], requests = [], currentUser }) {
   const mapContainerRef = useRef(null);
@@ -11,7 +12,7 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
 
   const [mapTheme, setMapTheme] = useState('google'); // 'google' | 'satellite' | 'terrain' | 'embed'
   const [selectedBlood, setSelectedBlood] = useState('');
-  const [selectedType, setSelectedType] = useState('all'); // 'all' | 'donors' | 'sos'
+  const [selectedType, setSelectedType] = useState('all'); // 'all' | 'donors' | 'sos' | 'hospitals'
   const [sidebarQuery, setSidebarQuery] = useState('');
   const [activeCity, setActiveCity] = useState('Dhaka');
   const [locating, setLocating] = useState(false);
@@ -222,7 +223,74 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
         `);
       });
     }
+
+    // 3. Add Bangladesh Hospitals & Blood Banks
+    if (selectedType === 'all' || selectedType === 'hospitals') {
+      BANGLADESH_HOSPITALS.forEach((hosp) => {
+        if (!hosp.lat || !hosp.lng) return;
+        const latLng = [Number(hosp.lat), Number(hosp.lng)];
+
+        const hospIcon = L.divIcon({
+          className: 'custom-map-marker',
+          html: `
+            <div style="
+              background: linear-gradient(135deg, #0284c7, #0369a1);
+              width: 38px; height: 38px; border-radius: 50%;
+              display: flex; align-items: center; justify-content: center;
+              color: #fff; font-weight: 800; font-size: 1.15rem;
+              border: 2.5px solid #fff; box-shadow: 0 4px 18px rgba(2,132,199,0.8);
+              cursor: pointer;
+            ">
+              🏥
+            </div>
+          `,
+          iconSize: [38, 38],
+          iconAnchor: [19, 19]
+        });
+
+        const marker = L.marker(latLng, { icon: hospIcon }).addTo(layer);
+        marker.bindPopup(`
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; min-width:260px; color:#1e293b; padding:4px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:0.72rem; font-weight:800; color:#0284c7; background:#e0f2fe; padding:3px 8px; border-radius:6px; text-transform:uppercase;">
+                🏥 Medical Facility
+              </span>
+              ${hosp.bloodBankAvailable ? '<span style="font-size:0.7rem; font-weight:800; color:#059669; background:#dcfce7; padding:3px 8px; border-radius:6px;">24/7 Transfusion</span>' : ''}
+            </div>
+            <h4 style="margin:0 0 3px 0; font-size:1.05rem; font-weight:700; color:#0f172a;">${hosp.name}</h4>
+            ${hosp.bnName ? `<p style="margin:0 0 5px 0; font-size:0.85rem; color:#475569; font-weight:600;">${hosp.bnName}</p>` : ''}
+            <p style="margin:0 0 4px 0; font-size:0.8rem; color:#64748b;">📍 ${hosp.upazila ? hosp.upazila + ', ' : ''}${hosp.district} (${hosp.division})</p>
+            <p style="margin:0 0 8px 0; font-size:0.76rem; color:#334155;"><strong>Address:</strong> ${hosp.address}</p>
+            <div style="display:flex; gap:6px;">
+              <a href="tel:${hosp.emergencyHotline || hosp.phone}" style="flex:1; background:#ef4444; color:#fff; padding:7px 0; text-align:center; border-radius:8px; font-size:0.78rem; font-weight:700; text-decoration:none;">
+                📞 Hotline
+              </a>
+              <a href="${getHospitalGoogleMapsUrl(hosp)}" target="_blank" rel="noopener noreferrer" style="flex:1; background:#0284c7; color:#fff; padding:7px 0; text-align:center; border-radius:8px; font-size:0.78rem; font-weight:700; text-decoration:none;">
+                🗺️ Directions
+              </a>
+            </div>
+          </div>
+        `);
+      });
+    }
   }, [donors, requests, selectedBlood, selectedType, mapTheme]);
+
+  // Listen for custom focus events from BangladeshHospitals directory
+  useEffect(() => {
+    const handleFocusHospital = (e) => {
+      const hosp = e.detail;
+      if (!hosp || !hosp.lat || !hosp.lng) return;
+
+      if (mapTheme === 'embed') {
+        setMapTheme('google');
+      }
+
+      flyTo(Number(hosp.lat), Number(hosp.lng), 16, hosp.district || 'Hospital');
+    };
+
+    window.addEventListener('lifepulse:focus-hospital', handleFocusHospital);
+    return () => window.removeEventListener('lifepulse:focus-hospital', handleFocusHospital);
+  }, [mapTheme]);
 
   const flyTo = (lat, lng, zoom = 15, cityName = '') => {
     if (cityName) setActiveCity(cityName);
@@ -250,6 +318,14 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
         count++;
       }
     });
+    if (selectedType === 'all' || selectedType === 'hospitals') {
+      BANGLADESH_HOSPITALS.forEach((h) => {
+        if (h.lat && h.lng) {
+          bounds.extend([Number(h.lat), Number(h.lng)]);
+          count++;
+        }
+      });
+    }
 
     if (count > 0) {
       map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
@@ -322,6 +398,19 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
     );
   });
 
+  const filteredHospitals = BANGLADESH_HOSPITALS.filter((h) => {
+    if (!sidebarQuery) return true;
+    const q = sidebarQuery.toLowerCase();
+    return (
+      h.name?.toLowerCase().includes(q) ||
+      (h.bnName && h.bnName.includes(q)) ||
+      h.district?.toLowerCase().includes(q) ||
+      h.upazila?.toLowerCase().includes(q) ||
+      h.address?.toLowerCase().includes(q) ||
+      h.type?.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <section className="map-section" id="mapSection">
       <div className="container">
@@ -359,18 +448,36 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
               className="btn btn-secondary btn-sm"
               style={{ padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600 }}
               onClick={() => flyTo(23.7806, 90.3952, 13, 'Dhaka')}
-              title="Jump to Dhaka & Bangladesh Donors"
+              title="Jump to Dhaka Division & Donors"
             >
-              📍 Dhaka & Regional
+              📍 Dhaka
             </button>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
               style={{ padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600 }}
-              onClick={() => flyTo(40.7306, -73.9352, 12, 'New York')}
-              title="Jump to New York Donors"
+              onClick={() => flyTo(22.3569, 91.7832, 13, 'Chattogram')}
+              title="Jump to Chattogram Division & Donors"
             >
-              📍 New York Metro
+              📍 Chattogram
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600 }}
+              onClick={() => flyTo(24.8949, 91.8687, 13, 'Sylhet')}
+              title="Jump to Sylhet Division & Donors"
+            >
+              📍 Sylhet
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600 }}
+              onClick={() => flyTo(24.3745, 88.6042, 13, 'Rajshahi')}
+              title="Jump to Rajshahi Division & Donors"
+            >
+              📍 Rajshahi
             </button>
             <button
               type="button"
@@ -428,9 +535,10 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
             >
-              <option value="all">Donors & SOS</option>
+              <option value="all">Donors, SOS & Hospitals</option>
               <option value="donors">Donors Only</option>
               <option value="sos">Urgent SOS Only</option>
+              <option value="hospitals">🏥 Hospitals & Blood Banks</option>
             </select>
 
             {/* Google Map Mode Switcher */}
@@ -532,6 +640,10 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
                 <div className="legend-color legend-sos" />
                 <span>Active Hospital Emergency SOS</span>
               </div>
+              <div className="legend-item">
+                <div className="legend-color" style={{ background: '#0284c7' }} />
+                <span>BD Hospitals &amp; Blood Centers</span>
+              </div>
             </div>
 
             {/* Search list query */}
@@ -592,7 +704,31 @@ export default function LiveMap({ donors = [], requests = [], currentUser }) {
                   </div>
                 ))}
 
-              {filteredDonors.length === 0 && filteredRequests.length === 0 && (
+              {/* Hospitals & Blood Banks */}
+              {(selectedType === 'all' || selectedType === 'hospitals') &&
+                filteredHospitals.slice(0, 30).map((h) => (
+                  <div
+                    key={h.id}
+                    className="map-list-item"
+                    style={{ borderColor: 'rgba(2, 132, 199, 0.4)', background: 'rgba(2, 132, 199, 0.08)' }}
+                    onClick={() => {
+                      if (mapTheme === 'embed') setMapTheme('google');
+                      flyTo(h.lat, h.lng, 15, h.district);
+                    }}
+                  >
+                    <div className="map-list-title">
+                      <span style={{ color: '#38bdf8', fontWeight: 700 }}>🏥 {h.name}</span>
+                      {h.bloodBankAvailable && (
+                        <span style={{ color: '#10b981', fontSize: '0.72rem', fontWeight: 800 }}>24/7</span>
+                      )}
+                    </div>
+                    <div className="map-list-subtitle" style={{ fontSize: '0.78rem' }}>
+                      📍 {h.district} ({h.division}) • {h.type}
+                    </div>
+                  </div>
+                ))}
+
+              {filteredDonors.length === 0 && filteredRequests.length === 0 && filteredHospitals.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                   No pinned locations match your search or filter.
                 </div>

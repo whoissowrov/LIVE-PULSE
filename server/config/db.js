@@ -17,7 +17,8 @@ const defaultData = {
   users: [],
   sosRequests: [],
   donationHistory: [],
-  notifications: []
+  notifications: [],
+  loginActivity: []
 };
 
 // Read database
@@ -113,4 +114,6 @@ export const getCollection = (collectionName) => {
 export const Users = getCollection('users');
 export const SosRequests = getCollection('sosRequests');
 export const DonationHistory = getCollection('donationHistory');
-export default { Users, SosRequests, DonationHistory };
+export const Notifications = getCollection('notifications');
+export const LoginActivity = getCollection('loginActivity');
+export default { Users, SosRequests, DonationHistory, Notifications, LoginActivity };

@@ -14,8 +14,16 @@
   <!-- Blood Droplet Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ef4444'><path d='M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z'/></svg>">
 
-  <!-- Production Compiled Stylesheet with Leaflet CSS -->
-  <link rel="stylesheet" crossorigin href="./assets/index-O9zBjr8W.css">
+  <script>
+    window.INITIAL_PAGE = 'home';
+  </script>
+  
+  
+  
+  
+  
+  <script type="module" crossorigin src="./assets/main-BRJCU9lY.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/main-Bp1rctYr.css">
 </head>
 <body>
   <!-- React App Root Container -->
@@ -28,16 +36,31 @@
     </div>
   </div>
 
-  <!-- Ensure visitor starts fresh as logged-out guest with "Login / Register" button -->
+  <!-- Ensure visitor starts fresh as logged-out guest with "Login / Register" button and purged dummy data -->
   <script>
     try {
       localStorage.removeItem('lifepulse_react_current_user');
       localStorage.removeItem('lifepulse_current_user');
       localStorage.removeItem('lifepulse_token');
+      localStorage.removeItem('lifepulse_users');
+      localStorage.removeItem('lifepulse_donors');
+      localStorage.removeItem('lifepulse_requests');
+      localStorage.removeItem('lifepulse_camps');
+      const d = localStorage.getItem('lifepulse_react_donors');
+      if (d && (d.includes('donor_1') || d.includes('donor_dhaka_') || d.includes('user_sarah') || d.includes('Sarah') || d.includes('Marcus') || d.includes('Alex') || d.includes('Farhana'))) {
+        localStorage.removeItem('lifepulse_react_donors');
+      }
+      const u = localStorage.getItem('lifepulse_react_users');
+      if (u && (u.includes('user_sarah') || u.includes('user_alex') || u.includes('Sarah') || u.includes('Marcus') || u.includes('Farhana'))) {
+        localStorage.removeItem('lifepulse_react_users');
+      }
+      const r = localStorage.getItem('lifepulse_react_requests');
+      if (r && (r.includes('req_dhaka_') || r.includes('req_1') || r.includes('req_2') || r.includes('Farhana') || r.includes('Emma'))) {
+        localStorage.removeItem('lifepulse_react_requests');
+      }
     } catch (e) {}
   </script>
 
   <!-- Compiled React Production Bundle with Official Google Maps Tiles and Embed -->
-  <script type="module" crossorigin src="./assets/index-BaFfIqRq.js"></script>
 </body>
 </html>

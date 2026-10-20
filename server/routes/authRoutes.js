@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { Users } from '../config/db.js';
+import { Users, LoginActivity } from '../config/db.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -17,7 +17,7 @@ const generateToken = (id, role) => {
 // @access  Public
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, phone, bloodGroup, city, area, address, isDonor } = req.body;
+    const { name, email, password, phone, bloodGroup, city, area, address, isDonor, division, district, upazila, union, village, lat, lng, nearestHospital } = req.body;
 
     if (!name || !email || !password || !bloodGroup) {
       return res.status(400).json({
@@ -54,13 +54,23 @@ router.post('/register', async (req, res) => {
       lastDonationDate: null,
       totalDonations: 0,
       avatarUrl: '',
+      division: division || 'Dhaka',
+      district: district || city || 'Dhaka',
+      upazila: upazila || '',
+      union: union || '',
+      village: village || '',
       location: {
-        city: city || 'Dhaka',
-        area: area || '',
+        division: division || 'Dhaka',
+        district: district || city || 'Dhaka',
+        upazila: upazila || '',
+        union: union || '',
+        village: village || '',
+        city: district || city || 'Dhaka',
+        area: area || upazila || 'Dhaka',
         address: address || '',
-        hospital: '',
-        lat: 23.8103, // Default center
-        lng: 90.4125
+        hospital: nearestHospital || '',
+        lat: parseFloat(lat) || 23.8103, // Default center
+        lng: parseFloat(lng) || 90.4125
       },
       medicalInfo: {
         weight: null,
@@ -68,8 +78,29 @@ router.post('/register', async (req, res) => {
         hbLevel: null,
         allergies: '',
         notes: ''
-      }
+      },
+      loginCount: 1,
+      lastLoginAt: new Date().toISOString()
     });
+
+    try {
+      LoginActivity.create({
+        userId: newUser.id,
+        userName: newUser.name,
+        bloodGroup: newUser.bloodGroup,
+        isDonor: Boolean(newUser.isDonor),
+        isAvailable: true,
+        division: newUser.division || 'Dhaka',
+        district: newUser.district || 'Dhaka',
+        upazila: newUser.upazila || '',
+        union: newUser.union || '',
+        village: newUser.village || '',
+        action: 'register',
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Could not record registration activity:', e);
+    }
 
     const token = generateToken(newUser.id, newUser.role);
     const { password: _, ...safeUser } = newUser;
@@ -125,8 +156,31 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Update last login timestamp
-    Users.findByIdAndUpdate(user.id, { lastLoginAt: new Date().toISOString() });
+    // Update last login timestamp and increment login count
+    const updatedLoginCount = (user.loginCount || 0) + 1;
+    Users.findByIdAndUpdate(user.id, {
+      lastLoginAt: new Date().toISOString(),
+      loginCount: updatedLoginCount
+    });
+
+    try {
+      LoginActivity.create({
+        userId: user.id,
+        userName: user.name,
+        bloodGroup: user.bloodGroup,
+        isDonor: Boolean(user.isDonor),
+        isAvailable: user.isAvailable !== false,
+        division: user.division || user.location?.division || 'Dhaka',
+        district: user.district || user.location?.district || user.location?.city || 'Dhaka',
+        upazila: user.upazila || user.location?.upazila || '',
+        union: user.union || user.location?.union || '',
+        village: user.village || user.location?.village || '',
+        action: 'login',
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Could not record login activity:', e);
+    }
 
     const token = generateToken(user.id, user.role);
     const { password: _, ...safeUser } = user;

@@ -1,5 +1,5 @@
 import express from 'express';
-import { Users } from '../config/db.js';
+import { Users, LoginActivity } from '../config/db.js';
 
 const router = express.Router();
 
@@ -93,6 +93,127 @@ router.get('/', (req, res) => {
   } catch (error) {
     console.error('Fetch donors error:', error);
     res.status(500).json({ success: false, message: 'Server error retrieving donors.' });
+  }
+});
+
+// @route   GET /api/donors/regional-stats
+// @desc    Get counts of registered donors and user logins categorized by district, upazila, and village
+// @access  Public
+router.get('/regional-stats', (req, res) => {
+  try {
+    const { district, upazila, division } = req.query;
+    const allUsers = Users.find(u => !u.isBanned);
+    const donors = allUsers.filter(u => u.isDonor);
+    const loginLogs = (typeof LoginActivity?.find === 'function' ? LoginActivity.find() : []) || [];
+
+    // Grouping by District
+    const districtMap = {};
+    let totalLogins = 0;
+
+    donors.forEach(d => {
+      const dist = d.district || d.location?.district || d.location?.city || 'Dhaka';
+      const upz = d.upazila || d.location?.upazila || 'General Upazila';
+      const vil = d.village || d.location?.village || d.union || d.location?.union || 'Central Area';
+      const div = d.division || d.location?.division || 'Dhaka';
+      const bg = d.bloodGroup || 'Unknown';
+      const isAvailable = d.isAvailable !== false;
+      const logins = Number(d.loginCount) || (d.lastLoginAt ? 1 : 0);
+      totalLogins += logins;
+
+      // 1. District level
+      if (!districtMap[dist]) {
+        districtMap[dist] = {
+          district: dist,
+          division: div,
+          registeredDonors: 0,
+          loggedInDonors: 0,
+          totalLogins: 0,
+          availableNow: 0,
+          bloodGroups: { 'A+': 0, 'A-': 0, 'B+': 0, 'B-': 0, 'AB+': 0, 'AB-': 0, 'O+': 0, 'O-': 0 },
+          upazilas: {},
+          lastLoginAt: d.lastLoginAt || d.updatedAt || null
+        };
+      }
+      districtMap[dist].registeredDonors += 1;
+      districtMap[dist].totalLogins += logins;
+      if (d.lastLoginAt) districtMap[dist].loggedInDonors += 1;
+      if (isAvailable) districtMap[dist].availableNow += 1;
+      if (districtMap[dist].bloodGroups[bg] !== undefined) {
+        districtMap[dist].bloodGroups[bg] += 1;
+      }
+      if (d.lastLoginAt && (!districtMap[dist].lastLoginAt || new Date(d.lastLoginAt) > new Date(districtMap[dist].lastLoginAt))) {
+        districtMap[dist].lastLoginAt = d.lastLoginAt;
+      }
+
+      // 2. Upazila level inside District
+      if (!districtMap[dist].upazilas[upz]) {
+        districtMap[dist].upazilas[upz] = {
+          upazila: upz,
+          district: dist,
+          division: div,
+          registeredDonors: 0,
+          loggedInDonors: 0,
+          totalLogins: 0,
+          availableNow: 0,
+          bloodGroups: {},
+          villages: {}
+        };
+      }
+      const uRef = districtMap[dist].upazilas[upz];
+      uRef.registeredDonors += 1;
+      uRef.totalLogins += logins;
+      if (d.lastLoginAt) uRef.loggedInDonors += 1;
+      if (isAvailable) uRef.availableNow += 1;
+      uRef.bloodGroups[bg] = (uRef.bloodGroups[bg] || 0) + 1;
+
+      // 3. Village level inside Upazila
+      if (!uRef.villages[vil]) {
+        uRef.villages[vil] = {
+          village: vil,
+          upazila: upz,
+          district: dist,
+          registeredDonors: 0,
+          availableNow: 0,
+          bloodGroups: {},
+          totalLogins: 0,
+          lastActive: d.lastLoginAt || null
+        };
+      }
+      const vRef = uRef.villages[vil];
+      vRef.registeredDonors += 1;
+      vRef.totalLogins += logins;
+      if (isAvailable) vRef.availableNow += 1;
+      vRef.bloodGroups[bg] = (vRef.bloodGroups[bg] || 0) + 1;
+    });
+
+    // Recent login activity stream
+    const recentActivity = loginLogs.slice(0, 15).map(l => ({
+      id: l.id,
+      userName: l.userName ? `${l.userName.slice(0, 4)}***` : 'Donor',
+      bloodGroup: l.bloodGroup,
+      division: l.division,
+      district: l.district,
+      upazila: l.upazila,
+      village: l.village,
+      action: l.action || 'login',
+      timestamp: l.timestamp || l.createdAt
+    }));
+
+    res.json({
+      success: true,
+      summary: {
+        totalRegisteredDonors: donors.length,
+        totalLoggedInDonors: donors.filter(d => d.lastLoginAt).length,
+        totalLoginsRecorded: totalLogins,
+        districtsCovered: Object.keys(districtMap).length,
+        availableNowCount: donors.filter(d => d.isAvailable !== false).length
+      },
+      districts: Object.values(districtMap),
+      recentActivity
+    });
+  } catch (error) {
+    console.error('Regional stats error:', error);
+    res.status(500).json({ success: false, message: 'Server error retrieving regional stats.' });
   }
 });
 

@@ -66,11 +66,56 @@ export const api = {
     return await res.json();
   },
 
+  // Blood donation recording & automated recovery tracking
+  recordDonationDate: async (donationData) => {
+    const res = await fetch(`${API_BASE_URL}/users/record-donation`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(donationData)
+    });
+    return await res.json();
+  },
+
+  // Website Notifications & Messages
+  getNotifications: async () => {
+    const res = await fetch(`${API_BASE_URL}/users/notifications`, {
+      headers: getHeaders()
+    });
+    return await res.json();
+  },
+
+  markNotificationRead: async (id) => {
+    const res = await fetch(`${API_BASE_URL}/users/notifications/${id}/read`, {
+      method: 'PUT',
+      headers: getHeaders()
+    });
+    return await res.json();
+  },
+
+  clearNotifications: async () => {
+    const res = await fetch(`${API_BASE_URL}/users/notifications`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    return await res.json();
+  },
+
   // Donor Directory
   getDonors: async (params = {}) => {
     const query = new URLSearchParams(params).toString();
     const res = await fetch(`${API_BASE_URL}/donors?${query}`);
     return await res.json();
+  },
+
+  // Regional Donor & Login Activity Analytics
+  getRegionalStats: async (params = {}) => {
+    try {
+      const query = new URLSearchParams(params).toString();
+      const res = await fetch(`${API_BASE_URL}/donors/regional-stats?${query}`);
+      return await res.json();
+    } catch (e) {
+      return null;
+    }
   },
 
   // Emergency SOS

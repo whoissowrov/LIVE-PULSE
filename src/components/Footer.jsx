@@ -1,39 +1,100 @@
 import React from 'react';
 import { Droplet, Headset } from 'lucide-react';
 
-export default function Footer({ onOpenUpload, onOpenAuth, currentUser, onOpenAdmin }) {
+export default function Footer({ onOpenUpload, onOpenAuth, currentUser, onOpenAdmin, onNavigate }) {
   const isAdmin = currentUser?.role === 'admin';
+
+  const handleLink = (page) => {
+    if (onNavigate) {
+      onNavigate(page);
+    }
+  };
 
   return (
     <footer className="site-footer">
       <div className="container">
         <div className="footer-grid">
           <div className="footer-brand">
-            <a href="#home" className="brand-logo" style={{ marginBottom: '10px' }}>
+            <a
+              href="#/"
+              className="brand-logo"
+              style={{ marginBottom: '10px' }}
+              onClick={(e) => {
+                e.preventDefault();
+                handleLink('home');
+              }}
+            >
               <div className="brand-icon">
                 <Droplet className="w-5 h-5 fill-current" />
               </div>
               <span>Life<strong>Pulse</strong></span>
             </a>
             <p>
-              An open community lifeline bridging blood donors, emergency patients, and blood banks with real-time location matching.
+              An open community lifeline bridging blood donors, emergency patients, and blood banks with real-time location matching across all 64 districts of Bangladesh.
             </p>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              Emergency Hotline: <strong>+1 (800) RED-CROSS</strong>
+              Bangladesh Emergency Hotline: <strong>999 / 16263</strong>
             </div>
           </div>
 
           <div className="footer-col">
-            <h5>Quick Actions</h5>
+            <h5>Dedicated Category Pages</h5>
             <ul>
               <li>
-                <a href="#dashboardSection" onClick={(e) => { e.preventDefault(); onOpenUpload(); }}>
-                  Upload My Location & Data
+                <a
+                  href="districts.html"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLink('districts');
+                  }}
+                >
+                  🏙️ District &amp; Village Tracker
                 </a>
               </li>
-              <li><a href="#requestsSection">Emergency SOS List</a></li>
-              <li><a href="#donorsSection">Find Donors Directory</a></li>
-              <li><a href="#mapSection">Live Radar Map</a></li>
+              <li>
+                <a
+                  href="hospitals.html"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLink('hospitals');
+                  }}
+                >
+                  🏥 BD Hospitals &amp; Blood Banks
+                </a>
+              </li>
+              <li>
+                <a
+                  href="donors.html"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLink('donors');
+                  }}
+                >
+                  🩸 Find Donors Directory
+                </a>
+              </li>
+              <li>
+                <a
+                  href="map.html"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLink('map');
+                  }}
+                >
+                  🗺️ Live Geolocation Map
+                </a>
+              </li>
+              <li>
+                <a
+                  href="urgent.html"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLink('requests');
+                  }}
+                >
+                  🚨 Emergency SOS Broadcast
+                </a>
+              </li>
               {!currentUser ? (
                 <li>
                   <a href="#login" onClick={(e) => { e.preventDefault(); onOpenAuth && onOpenAuth('login'); }}>
@@ -55,12 +116,42 @@ export default function Footer({ onOpenUpload, onOpenAuth, currentUser, onOpenAd
           </div>
 
           <div className="footer-col">
-            <h5>Information</h5>
+            <h5>Information &amp; Guidance</h5>
             <ul>
-              <li><a href="#compatibilitySection">Compatibility Matrix</a></li>
-              <li><a href="#eligibilityForm">Eligibility Quiz</a></li>
-              <li><a href="#">Safe Donation Guidelines</a></li>
-              <li><a href="#">Hospital Partnerships</a></li>
+              <li>
+                <a
+                  href="compatibility.html"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLink('compatibility');
+                  }}
+                >
+                  Compatibility Matrix
+                </a>
+              </li>
+              <li>
+                <a
+                  href="compatibility.html"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLink('compatibility');
+                  }}
+                >
+                  Eligibility Quiz
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#/dashboard"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!currentUser) onOpenAuth && onOpenAuth('login');
+                    else handleLink('dashboard');
+                  }}
+                >
+                  My Profile &amp; Location
+                </a>
+              </li>
             </ul>
           </div>
 

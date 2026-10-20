@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Lock, ArrowRight, UserPlus, Zap, ShieldAlert, KeyRound, CheckCircle2 } from 'lucide-react';
+import { X, Lock, ArrowRight, UserPlus, ShieldAlert, KeyRound, CheckCircle2, MapPin } from 'lucide-react';
+import BangladeshLocationSelector from './BangladeshLocationSelector';
 
 export default function AuthModal({ isOpen, initialTab = 'login', onClose, onLogin, onRegister, onDemoLogin }) {
   const [tab, setTab] = useState(initialTab || 'login');
@@ -21,7 +22,13 @@ export default function AuthModal({ isOpen, initialTab = 'login', onClose, onLog
     bloodGroup: 'O+',
     role: 'donor',
     phone: '',
-    city: 'Dhaka'
+    division: 'Dhaka',
+    district: 'Dhaka',
+    upazila: 'Mirpur',
+    union: '',
+    village: '',
+    city: 'Dhaka',
+    area: 'Mirpur'
   });
 
   useEffect(() => {
@@ -148,29 +155,25 @@ export default function AuthModal({ isOpen, initialTab = 'login', onClose, onLog
               {loginRole === 'user' ? (
                 /* Regular Member / Donor Login */
                 <div>
-                  {/* Quick Demo Access Buttons */}
-                  <div className="demo-auth-box" style={{ marginBottom: '16px' }}>
-                    <p style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', margin: '0 0 8px 0', color: 'var(--text-muted)' }}>
-                      <Zap className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Instant One-Click Demo Profiles:</span>
-                    </p>
-                    <div className="demo-buttons-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => onDemoLogin('sarah.chen@example.com')}
-                        title="Log in as Donor"
-                      >
-                        👤 Sarah (O- Donor)
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => onDemoLogin('alex.rivera@example.com')}
-                        title="Log in as Hospital Requester"
-                      >
-                        🏥 Alex (A+ Patient)
-                      </button>
+                  {/* Bangladesh Nationwide Network Information Card */}
+                  <div
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      borderRadius: '12px',
+                      padding: '11px 13px',
+                      marginBottom: '14px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '9px'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>🇧🇩</span>
+                    <div style={{ fontSize: '0.78rem', color: '#cbd5e1', lineHeight: 1.42 }}>
+                      <strong style={{ color: '#fff' }}>Bangladesh Live Blood Donor Registry:</strong>
+                      <p style={{ margin: '2px 0 0 0', color: 'var(--text-muted)' }}>
+                        Instant donor & emergency blood SOS connections across all 64 Zillas, 495+ Upazilas, Unions, and Villages in Bangladesh.
+                      </p>
                     </div>
                   </div>
 
@@ -393,27 +396,44 @@ export default function AuthModal({ isOpen, initialTab = 'login', onClose, onLog
                 </div>
               </div>
 
-              <div className="form-row-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-                <div className="form-group">
-                  <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '5px' }}>Phone</label>
-                  <input
-                    type="tel"
-                    className="form-input"
-                    placeholder="+880 1711-..."
-                    value={regData.phone}
-                    onChange={(e) => setRegData({ ...regData, phone: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '5px' }}>City</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Dhaka"
-                    value={regData.city}
-                    onChange={(e) => setRegData({ ...regData, city: e.target.value })}
-                  />
-                </div>
+              <div className="form-group" style={{ marginBottom: '14px' }}>
+                <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '5px' }}>
+                  Mobile Phone Number (+880)
+                </label>
+                <input
+                  type="tel"
+                  className="form-input"
+                  placeholder="e.g. 01711-XXXXXX or +880 1819-..."
+                  value={regData.phone}
+                  onChange={(e) => setRegData({ ...regData, phone: e.target.value })}
+                />
+              </div>
+
+              {/* Bangladeshi Zilla, Upazila, Union, and Village Cascade Selector */}
+              <div style={{ marginBottom: '16px' }}>
+                <BangladeshLocationSelector
+                  division={regData.division}
+                  district={regData.district}
+                  upazila={regData.upazila}
+                  union={regData.union}
+                  village={regData.village}
+                  onChange={(loc) => {
+                    setRegData((prev) => ({
+                      ...prev,
+                      division: loc.division,
+                      district: loc.district,
+                      upazila: loc.upazila,
+                      union: loc.union,
+                      village: loc.village,
+                      city: loc.city,
+                      area: loc.area,
+                      lat: loc.lat,
+                      lng: loc.lng
+                    }));
+                  }}
+                  helperText="Select your Division, Zilla, Upazila, and Village. When emergency blood requests are posted in your neighborhood, you will be notified immediately!"
+                  required
+                />
               </div>
 
               <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '10px' }}>
